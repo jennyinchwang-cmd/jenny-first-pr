@@ -641,6 +641,70 @@ MB_CROSS = {
 }
 
 
+# ---------------- ดวงรายสัปดาห์ / รายเดือน ----------------
+ZODIAC_TR = {
+    "鼠": {"th": "ชวด (หนู)", "en": "Rat", "mm": "ကြွက်"}, "牛": {"th": "ฉลู (วัว)", "en": "Ox", "mm": "နွား"},
+    "虎": {"th": "ขาล (เสือ)", "en": "Tiger", "mm": "ကျား"}, "兔": {"th": "เถาะ (กระต่าย)", "en": "Rabbit", "mm": "ယုန်"},
+    "龙": {"th": "มะโรง (มังกร)", "en": "Dragon", "mm": "နဂါး"}, "蛇": {"th": "มะเส็ง (งู)", "en": "Snake", "mm": "မြွေ"},
+    "马": {"th": "มะเมีย (ม้า)", "en": "Horse", "mm": "မြင်း"}, "羊": {"th": "มะแม (แพะ)", "en": "Goat", "mm": "ဆိတ်"},
+    "猴": {"th": "วอก (ลิง)", "en": "Monkey", "mm": "မျောက်"}, "鸡": {"th": "ระกา (ไก่)", "en": "Rooster", "mm": "ကြက်"},
+    "狗": {"th": "จอ (หมา)", "en": "Dog", "mm": "ခွေး"}, "猪": {"th": "กุน (หมู)", "en": "Pig", "mm": "ဝက်"},
+}
+HORO_UI = {
+    "th": {"head": "🗓️ ดวงรายสัปดาห์ & รายเดือน (พม่า + จีน + อินเดีย)", "week_tab": "📅 สัปดาห์นี้ (7 วัน)",
+           "month_tab": "📆 เดือนนี้ (30 วัน)", "overall_week": "พลังดวงสัปดาห์นี้", "overall_month": "พลังดวงเดือนนี้",
+           "your_zodiac": "ปีนักษัตรจีนของคุณ", "lucky_nums": "เลขนำโชคช่วงนี้",
+           "best_day": "วันดีที่สุด", "caution_day": "วันที่ควรระวัง",
+           "col_date": "วันที่", "col_day": "วัน", "col_level": "ระดับ", "col_why": "เหตุผล",
+           "good_days": "วันดี", "bad_days": "วันควรระวัง", "chong_days": "วันชงนักษัตรคุณ",
+           "yat_days": "วันยัตยาซา (มงคล)", "pya_days": "วันเปียตะดา (เลี่ยง)", "sab_days": "วันพระ (ทำบุญเสริมดวง)",
+           "top3": "3 วันทองของเดือน", "aspects_head": "จุดเด่นสัปดาห์นี้ (จากดาววันดีที่สุด)",
+           "asp_money": "💰 การเงิน", "asp_work": "💼 การงาน", "asp_love": "❤️ ความรัก", "asp_health": "🩺 สุขภาพ",
+           "level": {"ดีมาก": "ดีมาก", "ดี": "ดี", "กลาง": "กลาง", "ระวัง": "ระวัง", "หลีกเลี่ยง": "หลีกเลี่ยง"}},
+    "en": {"head": "🗓️ Weekly & Monthly Horoscope (Myanmar + Chinese + Indian)", "week_tab": "📅 This Week (7 days)",
+           "month_tab": "📆 This Month (30 days)", "overall_week": "This week's energy", "overall_month": "This month's energy",
+           "your_zodiac": "Your Chinese zodiac", "lucky_nums": "Lucky numbers this period",
+           "best_day": "Best day", "caution_day": "Day to watch",
+           "col_date": "Date", "col_day": "Day", "col_level": "Level", "col_why": "Why",
+           "good_days": "Good days", "bad_days": "Caution days", "chong_days": "Days clashing your zodiac",
+           "yat_days": "Yatyaza (auspicious)", "pya_days": "Pyathada (avoid)", "sab_days": "Sabbath (merit days)",
+           "top3": "Top 3 golden days", "aspects_head": "This week's highlights (from the best day's star)",
+           "asp_money": "💰 Finances", "asp_work": "💼 Career", "asp_love": "❤️ Love", "asp_health": "🩺 Health",
+           "level": {"ดีมาก": "Excellent", "ดี": "Good", "กลาง": "Neutral", "ระวัง": "Caution", "หลีกเลี่ยง": "Avoid"}},
+    "mm": {"head": "🗓️ အပတ်စဉ်နှင့် လစဉ် ကံကြမ္မာ (မြန်မာ + တရုတ် + အိန္ဒိယ)", "week_tab": "📅 ဤအပတ် (၇ ရက်)",
+           "month_tab": "📆 ဤလ (၃၀ ရက်)", "overall_week": "ဤအပတ် ကံစွမ်းအား", "overall_month": "ဤလ ကံစွမ်းအား",
+           "your_zodiac": "သင့်တရုတ်နှစ်နံ", "lucky_nums": "ဤကာလ ကံကောင်းဂဏန်းများ",
+           "best_day": "အကောင်းဆုံးနေ့", "caution_day": "သတိထားရမည့်နေ့",
+           "col_date": "နေ့စွဲ", "col_day": "နေ့", "col_level": "အဆင့်", "col_why": "အကြောင်းရင်း",
+           "good_days": "ကောင်းသောနေ့", "bad_days": "သတိထားရမည့်နေ့", "chong_days": "သင့်နှစ်နံနှင့် ခွန်ဖြစ်သောနေ့",
+           "yat_days": "ရက်ရာဇာ (မင်္ဂလာ)", "pya_days": "ပြဿဒါး (ရှောင်ရန်)", "sab_days": "ဥပုသ်နေ့ (ကုသိုလ်ပြုရန်)",
+           "top3": "ရွှေရက် ၃ ရက်", "aspects_head": "ဤအပတ်အားသာချက် (အကောင်းဆုံးနေ့၏ဂြိုဟ်မှ)",
+           "asp_money": "💰 ငွေကြေး", "asp_work": "💼 အလုပ်", "asp_love": "❤️ အချစ်", "asp_health": "🩺 ကျန်းမာရေး",
+           "level": {"ดีมาก": "အလွန်ကောင်း", "ดี": "ကောင်း", "กลาง": "ကြားနေ", "ระวัง": "သတိ", "หลีกเลี่ยง": "ရှောင်ပါ"}},
+}
+HORO_REASON = {
+    "th": {"yatyaza": "ยัตยาซา (วันมงคลพม่า)", "pyathada": "เปียตะดา (อัปมงคล)", "pyathada_pm": "เปียตะดาช่วงบ่าย",
+           "sabbath": "วันพระ", "friend_day": "ดาวประจำวันเป็นมิตรกับวันเกิดคุณ", "enemy_day": "ดาวประจำวันเป็นศัตรูกับวันเกิดคุณ",
+           "nawin_day": "วันโกนะวิน (วันที่ {d})", "chong": "ชงปีนักษัตรของคุณ (จีน)", "po_day": "วัน 破 ห้ามการใหญ่ (จีน)",
+           "cheng_kai": "วัน {zx} เหมาะเริ่มสิ่งใหม่ (จีน)", "huangdao": "วันหวงเต้า (มงคลจีน)", "heidao": "วันเฮยเต้า (จีน)"},
+    "en": {"yatyaza": "Yatyaza (Myanmar auspicious)", "pyathada": "Pyathada (inauspicious)", "pyathada_pm": "Afternoon Pyathada",
+           "sabbath": "Sabbath day", "friend_day": "day's star is friendly to your birth star", "enemy_day": "day's star is your birth star's enemy",
+           "nawin_day": "Konawin day (the {d}th)", "chong": "clashes your zodiac (Chinese)", "po_day": "破 day — avoid major starts (Chinese)",
+           "cheng_kai": "{zx} day — good for new beginnings (Chinese)", "huangdao": "Huangdao auspicious day (Chinese)", "heidao": "Heidao day (Chinese)"},
+    "mm": {"yatyaza": "ရက်ရာဇာ (မြန်မာမင်္ဂလာ)", "pyathada": "ပြဿဒါး", "pyathada_pm": "မွန်းလွဲပြဿဒါး",
+           "sabbath": "ဥပုသ်နေ့", "friend_day": "နေ့ဂြိုဟ်သည် သင့်မွေးနေ့၏မိတ်", "enemy_day": "နေ့ဂြိုဟ်သည် သင့်မွေးနေ့၏ရန်",
+           "nawin_day": "ကိုးနဝင်းနေ့ ({d} ရက်)", "chong": "သင့်နှစ်နံနှင့် ခွန် (တရုတ်)", "po_day": "破 နေ့ — အကြီးမစရ (တရုတ်)",
+           "cheng_kai": "{zx} နေ့ — အသစ်စရန်ကောင်း (တရုတ်)", "huangdao": "မင်္ဂလာနေ့ (တရုတ်)", "heidao": "မကောင်းနေ့ (တရုတ်)"},
+}
+
+
+def horo_reason_text(r, lang):
+    key, params, pts = r
+    txt = HORO_REASON[lang][key].format(**params)
+    sign = "＋" if pts > 0 else ("－" if pts < 0 else "•")
+    return f"{sign}{txt}"
+
+
 # ---------------- บทสรุปความเข้ากันแบบละเอียด (5 ปัจจัย) ----------------
 BREAKDOWN_UI = {
     "th": {"head": "📊 บทสรุปความเข้ากันแบบละเอียด", "factor": "ปัจจัย", "score": "คะแนน", "weight": "น้ำหนัก",

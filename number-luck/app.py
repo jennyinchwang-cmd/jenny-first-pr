@@ -23,9 +23,34 @@ from i18n import (UI, LANGS, star_name, pair_title_i18n, pair_desc_i18n, pair_pa
                   SUM_TONE_TEXT, NAWIN_TEXT, CAREER_TR, YADAYA_TR, WEEKDAY_TR, MONTH_TR,
                   ASTRO_VERDICT, COUPLE_TONE, COUPLE_TEXT, MB_CROSS, DIGIT_TR,
                   NUMPAIR_UI, NUMPAIR_REL, numpair_verdict,
-                  BREAKDOWN_UI, FACTOR_NAME, factor_comment)
+                  BREAKDOWN_UI, FACTOR_NAME, factor_comment,
+                  HORO_UI, HORO_REASON, ZODIAC_TR, horo_reason_text)
+from horoscope import weekly_fortune, monthly_fortune
+from meanings import DIGIT_LONG
 
 st.set_page_config(page_title="Number Luck", page_icon="🔮", layout="centered")
+
+st.markdown("""
+<style>
+h1 {
+  background: linear-gradient(90deg, #f5b301, #ff7ad9, #9b6bff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-weight: 800 !important;
+}
+div[data-testid="stMetric"] {
+  background: linear-gradient(145deg, #2a1b4a, #34215c);
+  border: 1px solid #4b3585; border-radius: 14px; padding: 12px 16px;
+}
+div[data-testid="stExpander"] details {
+  border: 1px solid #4b3585; border-radius: 12px; background: #241645;
+}
+.stProgress > div > div > div > div { background: linear-gradient(90deg, #f5b301, #ff7ad9); }
+button[kind="primary"] {
+  background: linear-gradient(90deg, #f5b301, #ff8c1a) !important;
+  color: #1a1030 !important; font-weight: 700 !important; border: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ---------- Language selector ----------
 lang = st.radio("ภาษา / Language / ဘာသာ", options=list(LANGS.keys()),
@@ -284,6 +309,55 @@ if go and number:
                 for tpl in YADAYA_TR[lang]:
                     st.write("• " + tpl.format(dir=day_dir(k), day=day_name(k), k=kk,
                                                planet=star_name(str(prof["num"]), lang)))
+
+        # ---------- Weekly / Monthly horoscope ----------
+        H = HORO_UI[lang]
+        st.subheader(H["head"])
+        if use_bd:
+            wk = weekly_fortune(bd, wed_pm)
+            mo = monthly_fortune(bd, wed_pm)
+        else:
+            wk = weekly_fortune(day_key=name_day)
+            mo = monthly_fortune(day_key=name_day)
+        tab_w, tab_m = st.tabs([H["week_tab"], H["month_tab"]])
+        with tab_w:
+            c1, c2, c3 = st.columns(3)
+            c1.metric(H["overall_week"], f"{wk['overall']:.0f}%")
+            if wk["zodiac"]:
+                c2.metric(H["your_zodiac"], ZODIAC_TR.get(wk["zodiac"], {}).get(lang, wk["zodiac"]))
+            c3.metric(H["lucky_nums"], " ".join(str(n) for n in wk["lucky_numbers"]))
+            rows = []
+            for d in wk["days"]:
+                why = " · ".join(horo_reason_text(r, lang) for r in d["reasons"]) or "—"
+                rows.append({"": d["icon"], H["col_date"]: d["date"].strftime("%d/%m"),
+                             H["col_day"]: day_name(d["wd_key"]),
+                             H["col_level"]: H["level"][d["level"]], H["col_why"]: why})
+            st.dataframe(rows, use_container_width=True, hide_index=True)
+            b, w_ = wk["best"], wk["worst"]
+            st.success(f"**{H['best_day']}:** {b['date'].strftime('%d/%m')} ({day_name(b['wd_key'])}) — "
+                       + (" · ".join(horo_reason_text(r, lang) for r in b["reasons"]) or "—"))
+            if w_["score"] < 0:
+                st.warning(f"**{H['caution_day']}:** {w_['date'].strftime('%d/%m')} ({day_name(w_['wd_key'])}) — "
+                           + " · ".join(horo_reason_text(r, lang) for r in w_["reasons"]))
+            # จุดเด่นรายด้านจากดาวของวันดีที่สุด
+            pn = str(b["day_planet_num"])
+            asp_src = DIGIT_LONG if lang == "th" else DIGIT_TR[lang]
+            st.markdown(f"**{H['aspects_head']}** — {star_name(pn, lang)}")
+            for asp_key, asp_label in [("money", H["asp_money"]), ("work", H["asp_work"]),
+                                       ("love", H["asp_love"]), ("health", H["asp_health"])]:
+                st.write(f"{asp_label}: {asp_src[pn][asp_key]}")
+        with tab_m:
+            c1, c2, c3 = st.columns(3)
+            c1.metric(H["overall_month"], f"{mo['overall']:.0f}%")
+            c2.metric(H["good_days"], len(mo["good"]))
+            c3.metric(H["bad_days"], len(mo["bad"]))
+            st.markdown(f"**{H['top3']}:** " + " · ".join(
+                f"{d['date'].strftime('%d/%m')} ({day_name(d['wd_key'])})" for d in mo["top3"]))
+            st.markdown(f"🟢 **{H['yat_days']}:** " + ", ".join(d["date"].strftime("%d/%m") for d in mo["yatyaza_days"]))
+            st.markdown(f"🔴 **{H['pya_days']}:** " + ", ".join(d["date"].strftime("%d/%m") for d in mo["pyathada_days"]))
+            if mo["chong_days"]:
+                st.markdown(f"⚡ **{H['chong_days']}:** " + ", ".join(d["date"].strftime("%d/%m") for d in mo["chong_days"]))
+            st.markdown(f"🙏 **{H['sab_days']}:** " + ", ".join(d["date"].strftime("%d/%m") for d in mo["sabbath_days"]))
 
     # ---------- Couple ----------
     core2 = extract_core(number2) if (use_couple and number2) else ""
