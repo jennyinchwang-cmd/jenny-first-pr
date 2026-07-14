@@ -92,6 +92,21 @@ def house_desc(idx: int) -> str:
     return MB_HOUSES[idx][2] if lang == "th" else HOUSES_TR[lang][idx][2]
 
 
+import os as _os
+_ASSET_DIR = _os.path.join(_os.path.dirname(__file__), "assets")
+_DAY_IMG = {"sun": "day_sun_garuda.png", "mon": "day_mon_tiger.png", "tue": "day_tue_lion.png",
+            "wed_am": "day_wed_elephant.png", "wed_pm": "day_rahu_elephant.png",
+            "thu": "day_thu_rat.png", "fri": "day_fri_guineapig.png", "sat": "day_sat_naga.png"}
+
+
+def _asset(name):
+    p = _os.path.join(_ASSET_DIR, name)
+    return p if _os.path.exists(p) else None
+
+
+_hero = _asset("hero_banner.png")
+if _hero:
+    st.image(_hero, use_container_width=True)
 st.title(T["title"])
 st.caption(T["tagline"])
 
@@ -224,9 +239,20 @@ if go and number:
             comp = bk["base"]
         prof = comp["profile"]
         k = prof["key"]
-        st.markdown(f"{T['born_on']}**{day_name(k)}** — {T['planet']}**{star_name(str(prof['num']), lang)}** "
-                    f"| {T['day_num']} **{prof['num']}** | {T['direction']}: {day_dir(k)} | {T['animal']}: {day_animal(k)}")
-        st.caption(f"{T['bd_trait']}: {day_trait(k)}")
+        img = _asset(_DAY_IMG.get(k, ""))
+        if img:
+            col_img, col_txt = st.columns([1, 3])
+            with col_img:
+                st.image(img, use_container_width=True)
+            with col_txt:
+                st.markdown(f"{T['born_on']}**{day_name(k)}** — {T['planet']}**{star_name(str(prof['num']), lang)}** "
+                            f"| {T['day_num']} **{prof['num']}**")
+                st.markdown(f"{T['direction']}: {day_dir(k)} | {T['animal']}: {day_animal(k)}")
+                st.caption(f"{T['bd_trait']}: {day_trait(k)}")
+        else:
+            st.markdown(f"{T['born_on']}**{day_name(k)}** — {T['planet']}**{star_name(str(prof['num']), lang)}** "
+                        f"| {T['day_num']} **{prof['num']}** | {T['direction']}: {day_dir(k)} | {T['animal']}: {day_animal(k)}")
+            st.caption(f"{T['bd_trait']}: {day_trait(k)}")
         if prof.get("mb_house"):
             h = prof["mb_house"]
             hi = h["no"] - 1
