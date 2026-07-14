@@ -15,6 +15,7 @@ import datetime as dt
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from scorer import score_number, extract_core
 from extra import sum_analysis, myanmar_analysis
@@ -32,6 +33,10 @@ from meanings import DIGIT
 
 app = FastAPI(title="Number Luck API", version="1.0",
               description="Myanmar phone number fortune API — พม่า+จีน+อินเดีย 3 ภาษา")
+
+# แอปมือถือ/เว็บเรียกข้าม origin ได้ (API อ่านอย่างเดียว ไม่มีข้อมูลลับ)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"],
+                   allow_headers=["*"])
 
 VALID_LANGS = ("th", "en", "mm")
 
