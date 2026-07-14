@@ -13,7 +13,8 @@ from meanings import DIGIT
 from extra import sum_analysis, myanmar_analysis
 from burmese import (number_compatibility, mahabote_full_chart, mahabote_cross, DAYS,
                      day_from_name, couple_compatibility, yadaya_prescription,
-                     day_key_from_date, relation, COUPLE_CLASH, GROH_THAK, couple_numbers)
+                     day_key_from_date, relation, COUPLE_CLASH, GROH_THAK, couple_numbers,
+                     compat_breakdown)
 from mmcal import auspicious_window
 from report import CAREER_BY_DIGIT
 import i18n
@@ -21,7 +22,8 @@ from i18n import (UI, LANGS, star_name, pair_title_i18n, pair_desc_i18n, pair_pa
                   DAYS_TR, HOUSES_TR, grade_label, compat_verdict, digit_trait,
                   SUM_TONE_TEXT, NAWIN_TEXT, CAREER_TR, YADAYA_TR, WEEKDAY_TR, MONTH_TR,
                   ASTRO_VERDICT, COUPLE_TONE, COUPLE_TEXT, MB_CROSS, DIGIT_TR,
-                  NUMPAIR_UI, NUMPAIR_REL, numpair_verdict)
+                  NUMPAIR_UI, NUMPAIR_REL, numpair_verdict,
+                  BREAKDOWN_UI, FACTOR_NAME, factor_comment)
 
 st.set_page_config(page_title="Number Luck", page_icon="🔮", layout="centered")
 
@@ -182,7 +184,8 @@ if go and number:
     if use_bd or name_day:
         st.subheader(T["bd_head"])
         if use_bd:
-            comp = number_compatibility(core, bd, wed_pm)
+            bk = compat_breakdown(core, bd, wed_pm)
+            comp = bk["base"]
             if name_day:
                 actual = day_key_from_date(bd, wed_pm)
                 if name_day == actual:
@@ -192,7 +195,8 @@ if go and number:
                                                       nday=day_name(name_day), aday=day_name(actual)))
         else:
             st.caption(T["name_guess"].format(name=owner_name, pref=name_pref))
-            comp = number_compatibility(core, day_key=name_day)
+            bk = compat_breakdown(core, day_key=name_day)
+            comp = bk["base"]
         prof = comp["profile"]
         k = prof["key"]
         st.markdown(f"{T['born_on']}**{day_name(k)}** — {T['planet']}**{star_name(str(prof['num']), lang)}** "
@@ -203,17 +207,36 @@ if go and number:
             hi = h["no"] - 1
             st.caption(T["mb_line"].format(planet=star_name(str(prof['num']), lang), no=h["no"],
                                            house=house_name(hi), nature=house_nature(hi), desc=house_desc(hi)))
-        st.metric(T["compat_score"], f"{comp['score']}/100")
-        verdict = compat_verdict(comp["score"], lang)
-        if comp["score"] >= 55:
+        st.metric(T["compat_score"], f"{bk['overall']}%")
+        verdict = compat_verdict(bk["overall"], lang)
+        if bk["overall"] >= 55:
             st.success(verdict)
-        elif comp["score"] >= 40:
+        elif bk["overall"] >= 40:
             st.info(verdict)
         else:
             st.warning(verdict)
         rel_icons = {"มิตร": "🟢", "เสริม": "🟢", "นวิน": "⭐", "กลาง": "⚪", "ศัตรู": "🔴", "สูญ": "⚫"}
         chips = " ".join(f"{rel_icons[d['relation']]}{d['digit']}" for d in comp["detail"])
         st.caption(f"{T['digit_by_digit']}: {chips}  |  {T['legend']}")
+
+        # ---------- บทสรุปความเข้ากันแบบละเอียด 5 ปัจจัย ----------
+        B = BREAKDOWN_UI[lang]
+        with st.expander(B["head"] + f" — {bk['overall']}%", expanded=True):
+            src_label = {"digits": B["src_mm"], "tail": B["src_mm"], "nawin": B["src_mm"],
+                         "sum": B["src_in"], "mahabote": B["src_mm"]}
+            for f in bk["factors"]:
+                icon = "🟢" if f["score"] >= 70 else ("🟡" if f["score"] >= 45 else "🔴")
+                st.markdown(f"{icon} **{FACTOR_NAME[lang][f['key']]}** · "
+                            f"{f['score']:.0f}/100 ({B['weight']} {f['weight_pct']}%) · _{src_label[f['key']]}_")
+                st.progress(min(1.0, f["score"] / 100))
+                st.caption(factor_comment(f, lang, star_name))
+            best = max(bk["factors"], key=lambda x: x["score"])
+            worst = min(bk["factors"], key=lambda x: x["score"])
+            st.success(f"**{B['verdict_top']}:** {FACTOR_NAME[lang][best['key']]} ({best['score']:.0f}/100) — "
+                       + factor_comment(best, lang, star_name))
+            if worst["score"] < 55:
+                st.warning(f"**{B['verdict_low']}:** {FACTOR_NAME[lang][worst['key']]} ({worst['score']:.0f}/100) — "
+                           + factor_comment(worst, lang, star_name))
 
         # ---------- Mahabote full chart (ต้องมีปีเกิด) ----------
         if use_bd:

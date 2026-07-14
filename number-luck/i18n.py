@@ -641,6 +641,86 @@ MB_CROSS = {
 }
 
 
+# ---------------- บทสรุปความเข้ากันแบบละเอียด (5 ปัจจัย) ----------------
+BREAKDOWN_UI = {
+    "th": {"head": "📊 บทสรุปความเข้ากันแบบละเอียด", "factor": "ปัจจัย", "score": "คะแนน", "weight": "น้ำหนัก",
+           "overall": "รวมทุกปัจจัย", "src_mm": "ศาสตร์พม่า", "src_in": "ศาสตร์อินเดีย",
+           "verdict_top": "จุดที่หนุนแรงที่สุด", "verdict_low": "จุดที่ควรรู้"},
+    "en": {"head": "📊 Detailed Compatibility Summary", "factor": "Factor", "score": "Score", "weight": "Weight",
+           "overall": "Overall (all factors)", "src_mm": "Myanmar system", "src_in": "Indian system",
+           "verdict_top": "Strongest support", "verdict_low": "Worth knowing"},
+    "mm": {"head": "📊 ကိုက်ညီမှု အသေးစိတ်အနှစ်ချုပ်", "factor": "အချက်", "score": "ရမှတ်", "weight": "အလေးချိန်",
+           "overall": "စုစုပေါင်း (အချက်အားလုံး)", "src_mm": "မြန်မာ့ပညာ", "src_in": "အိန္ဒိယပညာ",
+           "verdict_top": "အားအကောင်းဆုံးအချက်", "verdict_low": "သိထားသင့်သည့်အချက်"},
+}
+FACTOR_NAME = {
+    "th": {"digits": "ความสัมพันธ์รายหลัก (ดาววันเกิด × เลขทุกตัว ถ่วงตามตำแหน่ง)",
+           "tail": "เลขท้ายเบอร์ (ชะตาหลัก) × ดาววันเกิด",
+           "nawin": "พลังนวิน — จำนวนเลข 9 ในเบอร์",
+           "sum": "ผลรวมเบอร์ × เลขวันเกิด (Mulank)",
+           "mahabote": "ดาวเด่นของเบอร์ × ผังมหาโพติของคุณ"},
+    "en": {"digits": "Digit-by-digit relation (birth star × every digit, position-weighted)",
+           "tail": "Final digit (main destiny) × birth star",
+           "nawin": "Nawin power — count of 9s in the number",
+           "sum": "Number sum × birth-date number (Mulank)",
+           "mahabote": "The number's dominant stars × your Mahabote chart"},
+    "mm": {"digits": "ဂဏန်းတစ်လုံးချင်း ဆက်နွယ်မှု (မွေးနေ့ဂြိုဟ် × ဂဏန်းတိုင်း၊ နေရာအလိုက်)",
+           "tail": "နောက်ဆုံးဂဏန်း (အဓိကကံ) × မွေးနေ့ဂြိုဟ်",
+           "nawin": "နဝင်းစွမ်းအား — နံပါတ်ထဲက ၉ အရေအတွက်",
+           "sum": "ဂဏန်းပေါင်းလဒ် × မွေးရက်ဂဏန်း (Mulank)",
+           "mahabote": "နံပါတ်၏ထင်ရှားဂြိုဟ်များ × သင့်မဟာဘုတ်ဇယား"},
+}
+_REL_WORD = {
+    "th": {"มิตร": "ดาวคู่มิตร", "เสริม": "ดาวเดียวกับวันเกิด", "นวิน": "เลข 9 (นวิน)",
+           "กลาง": "เป็นกลาง", "สูญ": "เลข 0 (สูญ)", "ศัตรู": "ดาวคู่ศัตรู"},
+    "en": {"มิตร": "a friendly star", "เสริม": "the same star as your birth day", "นวิน": "the 9 (Nawin)",
+           "กลาง": "neutral", "สูญ": "a 0 (void)", "ศัตรู": "an enemy star"},
+    "mm": {"มิตร": "မိတ်ဂြိုဟ်", "เสริม": "မွေးနေ့ဂြိုဟ်နှင့်တူ", "นวิน": "၉ (နဝင်း)",
+           "กลาง": "ကြားနေ", "สูญ": "၀ (သုည)", "ศัตรู": "ရန်ဂြိုဟ်"},
+}
+
+
+def factor_comment(f: dict, lang: str, star_fn) -> str:
+    """ประโยคอธิบายของแต่ละปัจจัย"""
+    k, d = f["key"], f["data"]
+    if k == "digits":
+        good = sum(1 for x in d["detail"] if x["relation"] in ("มิตร", "เสริม", "นวิน"))
+        bad = sum(1 for x in d["detail"] if x["relation"] == "ศัตรู")
+        tot = len(d["detail"])
+        return {"th": f"ใน {tot} หลัก มีเลขที่หนุนดวงวันเกิด {good} หลัก" + (f" และเลขศัตรู {bad} หลัก" if bad else " ไม่มีเลขศัตรูเลย"),
+                "en": f"Of {tot} digits, {good} support your birth star" + (f" and {bad} are enemy digits" if bad else " with no enemy digits at all"),
+                "mm": f"ဂဏန်း {tot} လုံးတွင် {good} လုံးက မွေးနေ့ကံကို ထောက်ပံ့ပြီး" + (f" ရန်ဂဏန်း {bad} လုံးရှိသည်" if bad else " ရန်ဂဏန်း မရှိပါ")}[lang]
+    if k == "tail":
+        rel = _REL_WORD[lang][d["rel"]]
+        return {"th": f"เลขท้าย {d['tail']} เป็น{rel}ของดาววันเกิด — เลขท้ายคือชะตาหลักของเบอร์ จึงมีน้ำหนักมากเป็นพิเศษ",
+                "en": f"The final digit {d['tail']} is {rel} of your birth star — the final digit is the number's main destiny, so it carries extra weight",
+                "mm": f"နောက်ဆုံးဂဏန်း {d['tail']} သည် မွေးနေ့ဂြိုဟ်၏ {rel} ဖြစ်သည် — နောက်ဆုံးဂဏန်းသည် နံပါတ်၏အဓိကကံဖြစ်၍ အလေးချိန်ပိုများသည်"}[lang]
+    if k == "nawin":
+        n = d["nines"]
+        if n == 0:
+            return {"th": "เบอร์นี้ไม่มีเลข 9 — ไม่ได้พลังนวินเสริม (ไม่ใช่ข้อเสีย แต่ไม่มีโบนัส)",
+                    "en": "No 9s in this number — no Nawin boost (not a flaw, just no bonus)",
+                    "mm": "ဤနံပါတ်တွင် ၉ မပါ — နဝင်းအားဖြည့် မရ (အပြစ်မဟုတ် ဘောနပ်စ်မရသည်သာ)"}[lang]
+        return {"th": f"มีเลข 9 จำนวน {n} ตัว — พลังพุทธคุณ 9 ประการหนุนทุกวันเกิดตามคติพม่า",
+                "en": f"Contains {n} nine(s) — the Nine Attributes' power supports every birth day per Myanmar belief",
+                "mm": f"၉ ဂဏန်း {n} လုံးပါ — ဗုဒ္ဓဂုဏ်တော်ကိုးပါး စွမ်းအားက မွေးနေ့တိုင်းကို ထောက်ပံ့သည်"}[lang]
+    if k == "sum":
+        rel = d["rel"]
+        base = {"th": f"ผลรวมเบอร์ย่อได้เลข {d['root']} เทียบกับเลขวันเกิด (Mulank) {d['mulank']} ของคุณ",
+                "en": f"The number's sum reduces to {d['root']}, checked against your birth-date number (Mulank) {d['mulank']}",
+                "mm": f"နံပါတ်ပေါင်းလဒ် {d['root']} ကို သင့်မွေးရက်ဂဏန်း (Mulank) {d['mulank']} နှင့် တိုက်စစ်သည်"}[lang]
+        tailtxt = {"ดี": {"th": " — อยู่ในกลุ่มเลขที่ตำราอินเดียถือว่า 'ส่งเสริมกัน'", "en": " — it falls in the 'compatible' set per the Indian school", "mm": " — အိန္ဒိယကျမ်းအရ 'ကိုက်ညီသော' အုပ်စုထဲ ဝင်သည်"},
+                   "เลี่ยง": {"th": " — อยู่ในกลุ่มเลขที่ตำราอินเดียแนะนำให้เลี่ยง ควรเสริมด้วยปัจจัยอื่น", "en": " — it falls in the 'avoid' set per the Indian school; other factors should compensate", "mm": " — အိန္ဒိယကျမ်းအရ 'ရှောင်ရန်' အုပ်စုထဲ ဝင်သည် — အခြားအချက်များဖြင့် ဖြည့်သင့်သည်"},
+                   "กลาง": {"th": " — เป็นกลาง ไม่หนุนไม่ฉุด", "en": " — neutral, neither boosts nor drags", "mm": " — ကြားနေ မကောင်းမဆိုး"}}[rel][lang]
+        return base + tailtxt
+    if k == "mahabote":
+        p, n = d["pos"], d["neg"]
+        return {"th": f"ดาวเด่นของเบอร์ตกเรือนมงคลของคุณ {p} ดวง" + (f" และเรือนภาระ {n} ดวง" if n else " ไม่แตะเรือนภาระเลย"),
+                "en": f"The number's dominant stars land in {p} favorable house(s) of your chart" + (f" and {n} burden house(s)" if n else " and touch no burden house"),
+                "mm": f"နံပါတ်၏ထင်ရှားဂြိုဟ်များသည် သင့်ဇယား၏ ကောင်းသောအိမ် {p} လုံးတွင် ကျရောက်ပြီး" + (f" ဝန်ထုပ်အိမ် {n} လုံး ထိသည်" if n else " ဝန်ထုပ်အိမ် မထိပါ")}[lang]
+    return ""
+
+
 # ---------------- เบอร์คู่ (number-pair) ----------------
 NUMPAIR_UI = {
     "th": {"num2_label": "เบอร์ของคนที่ 2 (ใส่เพื่อเช็คเบอร์คู่กัน)", "head": "🔗 ความเข้ากันของเบอร์ทั้งสองเครื่อง",

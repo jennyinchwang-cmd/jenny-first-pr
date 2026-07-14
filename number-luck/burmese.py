@@ -182,6 +182,91 @@ def couple_numbers(core_a: str, core_b: str) -> dict:
             "nines": {"a": nines_a, "b": nines_b}}
 
 
+# ---------- บทสรุปความเข้ากันแบบละเอียด (5 ปัจจัย) ----------
+# ตาราง Mulank (เลขวันเกิด 1-9) × ผลรวมเบอร์ — สายเลขศาสตร์อินเดีย (mobile numerology)
+MULANK_TABLE = {
+    1: ({1, 3, 5, 6, 7, 9}, {2, 4, 8}),
+    2: ({1, 3, 5, 7}, {2, 4, 6, 8, 9}),
+    3: ({1, 3, 5, 7, 9}, {2, 4, 6, 8}),
+    4: ({1, 3, 5, 6, 7}, {2, 4, 8, 9}),
+    5: ({1, 3, 5, 6, 7, 9}, {2, 4, 8}),
+    6: ({1, 5, 6, 7}, {2, 3, 4, 8, 9}),
+    7: ({1, 3, 5, 6, 7, 9}, {2, 4, 8}),
+    8: ({3, 5, 6, 7}, {1, 2, 4, 8, 9}),
+    9: ({1, 3, 5, 7}, {2, 4, 6, 8, 9}),
+}
+
+
+def _digital_root(n: int) -> int:
+    while n > 9:
+        n = sum(int(c) for c in str(n))
+    return n if n > 0 else 9
+
+
+def compat_breakdown(core: str, birthdate: _dt.date = None, wednesday_pm: bool = False,
+                     day_key: str = None) -> dict:
+    """
+    บทสรุปความเข้ากันเบอร์↔วันเกิดแบบละเอียด — คะแนนแยก 5 ปัจจัย + รวมถ่วงน้ำหนัก
+      1. digits   (35%) ความสัมพันธ์รายหลัก (ดาววันเกิด × ทุกหลัก ถ่วงตำแหน่ง)
+      2. tail     (20%) เลขท้ายเบอร์ (ชะตาหลัก) × ดาววันเกิด
+      3. nawin    (10%) พลังนวิน (จำนวนเลข 9)
+      4. sum      (20%) ผลรวมเบอร์ × เลขวันเกิด (ตำราอินเดีย Mulank — ต้องมีวันที่เกิด)
+      5. mahabote (15%) ดาวเด่นของเบอร์ × เรือนมหาโพติเจ้าชะตา (ต้องมีปีเกิด)
+    ปัจจัยที่ข้อมูลไม่พอจะถูกตัดออกและกระจายน้ำหนักให้ตัวที่เหลือ
+    """
+    comp = number_compatibility(core, birthdate, wednesday_pm, day_key)
+    prof = comp["profile"]
+    bnum = prof["num"]
+    factors = []
+
+    # 1) รายหลัก
+    factors.append({"key": "digits", "score": comp["score"], "weight": 35,
+                    "data": {"detail": comp["detail"]}})
+
+    # 2) เลขท้าย
+    tail = int(core[-1])
+    rel_t = "นวิน" if tail == 9 else ("สูญ" if tail == 0 else relation(bnum, tail))
+    tail_score = {"มิตร": 100, "เสริม": 95, "นวิน": 90, "กลาง": 55, "สูญ": 40, "ศัตรู": 15}[rel_t]
+    factors.append({"key": "tail", "score": tail_score, "weight": 20,
+                    "data": {"tail": tail, "rel": rel_t, "bnum": bnum}})
+
+    # 3) นวิน
+    nines = core.count("9")
+    nawin_score = {0: 50, 1: 65, 2: 80, 3: 90}.get(nines, 100)
+    factors.append({"key": "nawin", "score": nawin_score, "weight": 10, "data": {"nines": nines}})
+
+    # 4) ผลรวม × Mulank (ต้องรู้วันที่เกิด)
+    if birthdate is not None:
+        mulank = _digital_root(birthdate.day)
+        root = _digital_root(sum(int(c) for c in "09" + core))
+        seek, avoid = MULANK_TABLE[mulank]
+        if root in seek:
+            sum_score, sum_rel = 100, "ดี"
+        elif root in avoid:
+            sum_score, sum_rel = 20, "เลี่ยง"
+        else:
+            sum_score, sum_rel = 55, "กลาง"
+        factors.append({"key": "sum", "score": sum_score, "weight": 20,
+                        "data": {"mulank": mulank, "root": root, "rel": sum_rel,
+                                 "seek": sorted(seek), "avoid": sorted(avoid)}})
+
+    # 5) มหาโพติ (ต้องรู้ปีเกิด)
+    if birthdate is not None:
+        cross = mahabote_cross(core, birthdate)
+        pos = sum(1 for h in cross["hits"] if h["nature"] == "บวก")
+        neg = sum(1 for h in cross["hits"] if h["nature"] != "บวก")
+        mb_score = max(0, min(100, 55 + 25 * pos - 15 * neg))
+        factors.append({"key": "mahabote", "score": mb_score, "weight": 15,
+                        "data": {"pos": pos, "neg": neg, "hits": cross["hits"]}})
+
+    # รวมถ่วงน้ำหนัก (กระจายน้ำหนักปัจจัยที่ขาดให้ตัวที่เหลือ)
+    wsum = sum(f["weight"] for f in factors)
+    overall = round(sum(f["score"] * f["weight"] for f in factors) / wsum, 1)
+    for f in factors:
+        f["weight_pct"] = round(f["weight"] / wsum * 100)
+    return {"overall": overall, "factors": factors, "profile": prof, "base": comp}
+
+
 # ---------- ยะดะยา: ใบสั่งแก้เคล็ดตามวันเกิด ----------
 # จำนวนอิง "กำลังดาว" (groh thak) ของมหาโพติ — ยืนยันจากวิจัยรอบ 2 ว่าตรงเลขกำลังวันไทย (รวม 108)
 # การใช้เป็นจำนวนถวาย/ปล่อยสัตว์เป็นแนวปฏิบัติที่เราออกแบบตามหลัก ไม่ใช่กฎตายตัวสากล
