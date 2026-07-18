@@ -30,27 +30,10 @@ from meanings import DIGIT_LONG
 
 st.set_page_config(page_title="Number Luck", page_icon="🔮", layout="centered")
 
-st.markdown("""
-<style>
-h1 {
-  background: linear-gradient(90deg, #f5b301, #ff7ad9, #9b6bff);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  font-weight: 800 !important;
-}
-div[data-testid="stMetric"] {
-  background: linear-gradient(145deg, #2a1b4a, #34215c);
-  border: 1px solid #4b3585; border-radius: 14px; padding: 12px 16px;
-}
-div[data-testid="stExpander"] details {
-  border: 1px solid #4b3585; border-radius: 12px; background: #241645;
-}
-.stProgress > div > div > div > div { background: linear-gradient(90deg, #f5b301, #ff7ad9); }
-button[kind="primary"] {
-  background: linear-gradient(90deg, #f5b301, #ff8c1a) !important;
-  color: #1a1030 !important; font-weight: 700 !important; border: none !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# ธีม "ราตรีส้มทอง" — token/แนวทางอยู่ที่ design/DESIGN.md
+from pathlib import Path
+_css = Path(__file__).parent / "design" / "streamlit_theme.css"
+st.markdown(f"<style>{_css.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 # ---------- Language selector ----------
 lang = st.radio("ภาษา / Language / ဘာသာ", options=list(LANGS.keys()),

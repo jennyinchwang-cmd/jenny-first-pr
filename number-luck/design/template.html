@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Number Luck — Design Template (โทน Horastro)</title>
+<!-- ฟอนต์: Playfair Display (ละติน serif), Trirong (ไทย serif), Sarabun (ไทยเนื้อความ), Padauk (พม่า) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Trirong:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS — โทน "ท้องฟ้ายามค่ำคืน + ส้มทองโหราศาสตร์"
+   แกะจากภาพอ้างอิง horastro — ใช้ตัวแปรพวกนี้เป็นหลักทุกที่
+   ============================================================ */
+:root{
+  /* พื้น (ground) */
+  --sky-0:#0d1329;        /* ขอบฟ้าลึกสุด — พื้นหลังนอกสุด */
+  --sky-1:#111832;        /* พื้นหลังหลักของหน้า */
+  --sky-2:#1a2244;        /* แผง/การ์ด */
+  --sky-3:#232c52;        /* การ์ดตอน hover / ชั้นที่ยกขึ้น */
+  --line:#2c3660;         /* เส้นขอบการ์ด บางๆ */
+  --line-soft:#222b4e;    /* เส้นคั่นจางกว่า */
+
+  /* ส้มทอง (accent) */
+  --ember:#e8792e;        /* ส้มหลัก — ปุ่ม, ลิงก์, ไฮไลต์ */
+  --ember-hi:#f2a05c;     /* ส้มอ่อน — hover, เส้นลายประดับ */
+  --ember-deep:#c2601f;   /* ส้มเข้ม — ขอบปุ่ม, active */
+  --ember-glow:rgba(232,121,46,.28);  /* แสงเรือง */
+
+  /* ตัวอักษร */
+  --ivory:#f3ead9;        /* หัวข้อ — ครีมงาช้าง */
+  --text:#c9cfe4;         /* เนื้อความ — เทาอมฟ้า */
+  --text-dim:#8d95b5;     /* คำอธิบายรอง */
+
+  /* ฟอนต์ */
+  --font-display:"Playfair Display","Trirong",Georgia,"Times New Roman",serif;
+  --font-body:"Sarabun","Padauk",-apple-system,"Segoe UI",sans-serif;
+
+  /* มิติ */
+  --radius:14px;
+  --radius-pill:999px;
+  --maxw:1080px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, #1e2750 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 30%, #18203f 0%, transparent 55%),
+    var(--sky-1);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:16.5px;
+  line-height:1.75;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ---------- ดาวระยิบพื้นหลัง (canvas เต็มจอ อยู่หลังสุด) ---------- */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.page{position:relative;z-index:1}
+
+/* ---------- โครงหน้า ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ---------- Navbar ---------- */
+nav{
+  position:sticky;top:0;z-index:50;
+  background:rgba(13,19,41,.82);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-soft);
+}
+.nav-in{display:flex;align-items:center;gap:28px;height:64px}
+.logo{
+  font-family:var(--font-display);font-weight:700;font-size:1.25rem;
+  color:var(--ember);letter-spacing:.04em;text-decoration:none;
+  display:flex;align-items:center;gap:9px;
+}
+.logo .mark{
+  width:26px;height:26px;border:1.5px solid var(--ember);border-radius:50%;
+  display:grid;place-items:center;font-size:.8rem;color:var(--ember-hi);
+}
+.nav-links{display:flex;gap:24px;margin-left:auto}
+.nav-links a{
+  color:var(--text);text-decoration:none;font-size:.95rem;
+  padding:4px 0;border-bottom:2px solid transparent;transition:.2s;
+}
+.nav-links a:hover,.nav-links a:focus-visible{color:var(--ivory);border-bottom-color:var(--ember)}
+.nav-links a.active{color:var(--ivory);border-bottom-color:var(--ember)}
+
+/* ---------- ปุ่ม ---------- */
+.btn{
+  display:inline-block;font-family:var(--font-body);font-weight:600;
+  font-size:1rem;text-decoration:none;cursor:pointer;border-radius:8px;
+  padding:12px 26px;transition:.2s;border:1px solid transparent;
+}
+.btn-primary{
+  background:linear-gradient(180deg,var(--ember-hi) 0%,var(--ember) 55%,var(--ember-deep) 100%);
+  color:#fff;box-shadow:0 4px 22px var(--ember-glow);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px var(--ember-glow)}
+.btn-ghost{border-color:var(--line);color:var(--ivory);background:transparent}
+.btn-ghost:hover{border-color:var(--ember);color:var(--ember-hi)}
+.btn:focus-visible{outline:2px solid var(--ember-hi);outline-offset:3px}
+
+/* ---------- Hero ---------- */
+.hero{padding:72px 0 56px;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+.eyebrow{
+  text-transform:uppercase;letter-spacing:.22em;font-size:.78rem;
+  color:var(--ember-hi);font-weight:600;margin-bottom:16px;
+  display:flex;align-items:center;gap:10px;
+}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--ember)}
+h1{
+  font-family:var(--font-display);color:var(--ivory);
+  font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.18;font-weight:600;
+  text-wrap:balance;margin-bottom:18px;
+}
+h1 .hl{color:var(--ember)}
+.hero p.lede{font-size:1.08rem;color:var(--text);max-width:30rem;margin-bottom:28px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+.hero-art{position:relative;display:grid;place-items:center;min-height:360px}
+#wheel{max-width:100%;filter:drop-shadow(0 0 34px var(--ember-glow))}
+
+/* ---------- ตัวคั่น section ✦ ---------- */
+.divider{
+  display:flex;align-items:center;gap:14px;justify-content:center;
+  margin:56px 0;color:var(--ember);font-size:.95rem;
+}
+.divider::before,.divider::after{
+  content:"";height:1px;width:min(160px,22vw);
+  background:linear-gradient(90deg,transparent,var(--line));
+}
+.divider::after{background:linear-gradient(90deg,var(--line),transparent)}
+
+/* ---------- หัวข้อ section ---------- */
+.sec-head{text-align:center;margin-bottom:40px}
+.sec-head h2{
+  font-family:var(--font-display);color:var(--ivory);font-weight:600;
+  font-size:clamp(1.6rem,3vw,2.2rem);text-wrap:balance;margin-bottom:10px;
+}
+.sec-head p{color:var(--text-dim);max-width:34rem;margin:0 auto}
+
+/* ---------- การ์ดฟีเจอร์ ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{
+  background:var(--sky-2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:28px 24px;transition:.25s;
+}
+.card:hover{background:var(--sky-3);border-color:var(--ember-deep);transform:translateY(-3px)}
+.card .icon{
+  width:52px;height:52px;border:1.5px solid var(--ember);border-radius:50%;
+  display:grid;place-items:center;font-size:1.35rem;color:var(--ember-hi);
+  margin-bottom:18px;
+}
+.card h3{font-family:var(--font-display);color:var(--ivory);font-weight:600;font-size:1.15rem;margin-bottom:8px}
+.card p{font-size:.95rem;color:var(--text-dim)}
+
+/* ---------- แถวไอคอน 4 ช่อง (แบบท้ายโปสเตอร์) ---------- */
+.pillars{display:flex;justify-content:center;align-items:flex-start;gap:0;flex-wrap:wrap}
+.pillar{
+  flex:1;min-width:150px;max-width:220px;text-align:center;padding:0 18px;
+  position:relative;
+}
+.pillar + .pillar::before{
+  content:"·";position:absolute;left:-4px;top:34px;color:var(--ember);font-size:1.4rem;
+}
+.pillar .ring{
+  width:74px;height:74px;margin:0 auto 14px;border:1.5px solid var(--ember);
+  border-radius:50%;display:grid;place-items:center;font-size:1.7rem;color:var(--ember-hi);
+}
+.pillar b{display:block;color:var(--ivory);font-weight:600;font-size:1rem;line-height:1.4}
+
+/* ---------- ตัวอย่างการ์ดผลคำทำนาย (ใช้ในหน้าแอปจริง) ---------- */
+.result{
+  background:linear-gradient(160deg,var(--sky-2),#151d3d);
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:30px;max-width:640px;margin:0 auto;
+}
+.result .num{
+  font-family:var(--font-display);font-size:1.9rem;letter-spacing:.14em;
+  color:var(--ivory);text-align:center;margin-bottom:6px;
+  font-variant-numeric:tabular-nums;
+}
+.result .grade{
+  text-align:center;color:var(--ember-hi);letter-spacing:.18em;
+  text-transform:uppercase;font-size:.8rem;font-weight:600;margin-bottom:22px;
+}
+.meter{height:8px;background:var(--sky-0);border-radius:var(--radius-pill);overflow:hidden;margin-bottom:22px}
+.meter i{
+  display:block;height:100%;width:86%;
+  background:linear-gradient(90deg,var(--ember-deep),var(--ember),var(--ember-hi));
+  border-radius:var(--radius-pill);
+}
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.chip{
+  border:1px solid var(--line);border-radius:var(--radius-pill);
+  padding:6px 16px;font-size:.88rem;color:var(--text);
+}
+.chip.good{border-color:var(--ember-deep);color:var(--ember-hi);background:rgba(232,121,46,.08)}
+
+/* ---------- Footer แคปซูล ---------- */
+footer{padding:64px 0 56px;text-align:center}
+.foot-star{color:var(--ember);margin-bottom:24px;font-size:1.1rem}
+.site-pill{
+  display:inline-flex;align-items:center;gap:10px;
+  border:1.5px solid var(--ember);border-radius:var(--radius-pill);
+  padding:12px 34px;color:var(--ember-hi);font-weight:600;font-size:1.05rem;
+  text-decoration:none;transition:.2s;
+}
+.site-pill:hover{background:rgba(232,121,46,.1)}
+.copyright{margin-top:22px;font-size:.85rem;color:var(--text-dim)}
+
+/* ---------- Responsive ---------- */
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;padding-top:48px}
+  .hero-art{min-height:280px;order:-1}
+  .cards{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .pillar + .pillar::before{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+
+<div class="page">
+
+<!-- ================= NAVBAR ================= -->
+<nav>
+  <div class="wrap nav-in">
+    <a class="logo" href="#"><span class="mark">✦</span>Number Luck</a>
+    <div class="nav-links">
+      <a href="#" class="active">หน้าแรก</a>
+      <a href="#features">ดูดวงเบอร์</a>
+      <a href="#pillars">ศาสตร์พม่า</a>
+      <a href="#result">ดวงคู่</a>
+      <a href="#footer">ติดต่อ</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero wrap">
+  <div>
+    <div class="eyebrow">โหราศาสตร์เบอร์โทรศัพท์พม่า</div>
+    <h1>คำพยากรณ์<br>จาก<span class="hl">ดวงดาว</span> ในเบอร์ของคุณ</h1>
+    <p class="lede">วิเคราะห์คู่เลข มหาโพติ ฤกษ์ยามพม่า และความเข้ากันของดวงคู่ — ครบทุกศาสตร์ในที่เดียว รองรับ 3 ภาษา ไทย · English · မြန်မာ</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#result">เช็คเบอร์ของคุณ</a>
+      <a class="btn btn-ghost" href="#features">ดูศาสตร์ทั้งหมด</a>
+    </div>
+  </div>
+  <div class="hero-art">
+    <canvas id="wheel" width="420" height="420" aria-hidden="true"></canvas>
+  </div>
+</header>
+
+<div class="divider">✦</div>
+
+<!-- ================= การ์ดฟีเจอร์ ================= -->
+<section id="features" class="wrap">
+  <div class="sec-head">
+    <h2>ศาสตร์แห่งตัวเลขและดวงดาว</h2>
+    <p>เลือกดูคำพยากรณ์ที่ต้องการ — ทุกคำทำนายอ้างอิงตำราโหราศาสตร์พม่าโบราณ</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="icon">☏</div>
+      <h3>ดูดวงเบอร์โทร</h3>
+      <p>วิเคราะห์คู่เลขทั้ง 100 คู่ พร้อมคะแนนพลังเบอร์และคำแนะนำอาชีพที่เหมาะกับตัวเลขของคุณ</p>
+    </div>
+    <div class="card">
+      <div class="icon">☾</div>
+      <h3>มหาโพติ &amp; ฤกษ์พม่า</h3>
+      <p>ผูกดวงมหาโพติจากวันเกิด ดูวันยัตรา-ปยาทาดา และฤกษ์มงคลประจำสัปดาห์</p>
+    </div>
+    <div class="card">
+      <div class="icon">♡</div>
+      <h3>ดวงคู่ &amp; ยะดะยา</h3>
+      <p>เช็คความเข้ากันของคู่รักจากวันเกิดทั้งสองฝ่าย พร้อมวิธีแก้เคล็ดตามตำรา</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider">✦</div>
+
+<!-- ================= แถวไอคอน 4 เสา ================= -->
+<section id="pillars" class="wrap">
+  <div class="pillars">
+    <div class="pillar"><div class="ring">☀</div><b>เบอร์มงคล<br>รายวัน</b></div>
+    <div class="pillar"><div class="ring">♌</div><b>ดาวประจำ<br>วันเกิด</b></div>
+    <div class="pillar"><div class="ring">📖</div><b>ตำรา<br>มหาโพติ</b></div>
+    <div class="pillar"><div class="ring">✧</div><b>ฤกษ์ยาม<br>มงคล</b></div>
+  </div>
+</section>
+
+<div class="divider">✦</div>
+
+<!-- ================= ตัวอย่างการ์ดผลคำทำนาย ================= -->
+<section id="result" class="wrap">
+  <div class="sec-head">
+    <h2>ตัวอย่างผลคำพยากรณ์</h2>
+    <p>รูปแบบการ์ดผลลัพธ์ — นำ pattern นี้ไปใช้กับหน้าแสดงผลในแอปจริง</p>
+  </div>
+  <div class="result">
+    <div class="num">09•420•168•88</div>
+    <div class="grade">เกรด A · เบอร์มหาเสน่ห์การเงิน</div>
+    <div class="meter" role="img" aria-label="คะแนนพลังเบอร์ 86 จาก 100"><i></i></div>
+    <div class="chips">
+      <span class="chip good">68 — เมตตามหานิยม</span>
+      <span class="chip good">88 — ทรัพย์ไหลมา</span>
+      <span class="chip">42 — ขยันอดทน</span>
+      <span class="chip good">16 — ผู้ใหญ่อุปถัมภ์</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer id="footer">
+  <div class="foot-star">✦ ✦ ✦</div>
+  <a class="site-pill" href="https://ft.jbacworkhub.com">🌐 ft.jbacworkhub.com</a>
+  <div class="copyright">Number Luck — คำพยากรณ์จากดวงดาว เขียนไว้ในตัวเลขของคุณ</div>
+</footer>
+
+</div><!-- /.page -->
+
+<script>
+/* ---------- ดาวระยิบพื้นหลัง ---------- */
+(function(){
+  const cv=document.getElementById('stars'),ctx=cv.getContext('2d');
+  let stars=[];
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function resize(){
+    cv.width=innerWidth;cv.height=innerHeight;
+    stars=Array.from({length:Math.floor(innerWidth/9)},()=>({
+      x:Math.random()*cv.width,y:Math.random()*cv.height,
+      r:Math.random()*1.3+.3,p:Math.random()*Math.PI*2,s:.4+Math.random()*.9
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for(const st of stars){
+      const a=reduced?.6:.35+.45*Math.abs(Math.sin(t/1400*st.s+st.p));
+      ctx.globalAlpha=a;
+      ctx.fillStyle=st.r>1.1?'#f2a05c':'#e8ddc8';
+      ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,7);ctx.fill();
+    }
+    if(!reduced)requestAnimationFrame(draw);
+  }
+  addEventListener('resize',resize);resize();
+  reduced?draw(0):requestAnimationFrame(draw);
+})();
+
+/* ---------- วงล้อจักรราศีเส้นบาง (hero) ---------- */
+(function(){
+  const cv=document.getElementById('wheel'),ctx=cv.getContext('2d');
+  const W=cv.width,C=W/2;
+  const EMBER='#e8792e',HI='#f2a05c',DIM='rgba(232,121,46,.4)';
+  const SIGNS=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let rot=0;
+  function ring(r,color,w){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.beginPath();ctx.arc(C,C,r,0,7);ctx.stroke();}
+  function draw(){
+    ctx.clearRect(0,0,W,W);
+    ring(C-8,DIM,1);ring(C-16,EMBER,1.2);ring(C-58,DIM,1);ring(C-66,EMBER,1);ring(C-110,DIM,1);
+    /* ขีดแบ่ง 12 ราศี */
+    for(let i=0;i<12;i++){
+      const a=rot+i*Math.PI/6;
+      ctx.strokeStyle=DIM;ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(C+Math.cos(a)*(C-66),C+Math.sin(a)*(C-66));
+      ctx.lineTo(C+Math.cos(a)*(C-16),C+Math.sin(a)*(C-16));
+      ctx.stroke();
+      /* สัญลักษณ์ราศี */
+      const am=a+Math.PI/12,rr=C-38;
+      ctx.fillStyle=HI;ctx.font='19px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(SIGNS[i],C+Math.cos(am)*rr,C+Math.sin(am)*rr);
+      /* จุดเล็กวงใน */
+      ctx.fillStyle=DIM;
+      ctx.beginPath();ctx.arc(C+Math.cos(a)*(C-88),C+Math.sin(a)*(C-88),1.6,0,7);ctx.fill();
+    }
+    /* ดวงอาทิตย์ใจกลาง */
+    const g=ctx.createRadialGradient(C,C,4,C,C,C-112);
+    g.addColorStop(0,'rgba(242,160,92,.85)');g.addColorStop(.35,'rgba(232,121,46,.25)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(C,C,C-110,0,7);ctx.fill();
+    ctx.fillStyle=HI;ctx.beginPath();ctx.arc(C,C,7,0,7);ctx.fill();
+    /* รัศมี 8 แฉก */
+    for(let i=0;i<8;i++){
+      const a=-rot*2+i*Math.PI/4;
+      ctx.strokeStyle=EMBER;ctx.lineWidth=1.2;
+      ctx.beginPath();
+      ctx.moveTo(C+Math.cos(a)*14,C+Math.sin(a)*14);
+      ctx.lineTo(C+Math.cos(a)*30,C+Math.sin(a)*30);
+      ctx.stroke();
+    }
+    if(!reduced){rot+=.0012;requestAnimationFrame(draw);}
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
