@@ -90,8 +90,11 @@ def _asset(name):
 _hero = _asset("hero_banner.png")
 if _hero:
     st.image(_hero, use_container_width=True)
-st.title(T["title"])
-st.caption(T["tagline"])
+st.markdown(f"""
+<div class="nl-eyebrow">✦&ensp;Myanmar Number Astrology&ensp;✦</div>
+<div class="nl-title">🔮 Number <span class="hl">Luck</span></div>
+<p class="nl-lede">{T["tagline"]}</p>
+""", unsafe_allow_html=True)
 
 # ---------- Inputs ----------
 number = st.text_input(T["phone_label"], placeholder="09XXXXXXXXX")
@@ -129,6 +132,12 @@ if go and number:
 
     # ---------- Header ----------
     st.divider()
+    st.markdown(f"""
+<div class="nl-result">
+  <div class="num">{r["full"]}</div>
+  <div class="grade">{grade_label(r["grade"], lang)} · {adj}/100</div>
+</div>
+""", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     c1.metric(T["grade_net"], f"{adj}/100")
     c2.metric(T["grade_level"], grade_label(r["grade"], lang))
@@ -455,3 +464,11 @@ if go and number:
     st.caption(T["disclaimer"])
 elif go:
     st.warning(T["need_number"])
+
+# ---------- Footer ----------
+st.markdown("""
+<div class="nl-foot">
+  <div class="stars">✦ ✦ ✦</div>
+  <a class="nl-pill" href="https://ft.jbacworkhub.com">🌐 ft.jbacworkhub.com</a>
+</div>
+""", unsafe_allow_html=True)

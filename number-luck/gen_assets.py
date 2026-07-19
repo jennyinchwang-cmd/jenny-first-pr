@@ -21,9 +21,11 @@ import fal_client
 ASSETS = Path(__file__).parent / "assets"
 ASSETS.mkdir(exist_ok=True)
 
-STYLE = ("ornate golden emblem in traditional Burmese temple art style, intricate gold filigree "
-         "line art with subtle glow, on deep royal purple background, mystical and sacred, "
-         "perfectly centered, symmetrical composition, app icon style, no text, no letters")
+# ธีม "ราตรีส้มทอง" — เส้นสายส้มทองเผาบนกรมท่ากลางคืน (ดู design/DESIGN.md)
+STYLE = ("ornate emblem in traditional Burmese temple art style, thin elegant burnt-orange "
+         "and amber filigree line art with subtle ember glow, on deep midnight navy blue "
+         "night sky background, a few tiny stars, mystical and sacred, perfectly centered, "
+         "symmetrical composition, app icon style, no text, no letters")
 
 IMAGES = {
     "day_sun_garuda":      f"majestic Garuda mythical bird with spread wings, {STYLE}",
@@ -34,10 +36,11 @@ IMAGES = {
     "day_thu_rat":         f"small elegant rat sitting alertly, {STYLE}",
     "day_fri_guineapig":   f"cute round guinea pig, {STYLE}",
     "day_sat_naga":        f"coiled naga serpent dragon with crown, {STYLE}",
-    "hero_banner":         ("mystical Burmese astrology zodiac wheel with eight directions, golden "
-                            "pagoda silhouette and glowing numbers floating around, ornate gold "
-                            "filigree on deep royal purple night sky with stars, magical fortune "
-                            "telling atmosphere, wide banner composition, no text"),
+    "hero_banner":         ("mystical astrology zodiac wheel drawn in thin burnt-orange filigree "
+                            "line art, crescent moon phases and small stars, golden pagoda "
+                            "silhouette, soft glowing ember clouds on deep midnight navy night "
+                            "sky, elegant fortune telling atmosphere, wide banner composition, "
+                            "no text, no letters"),
 }
 
 

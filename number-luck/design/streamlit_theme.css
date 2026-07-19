@@ -89,3 +89,65 @@ div[data-testid="stTable"] table, .stDataFrame{
   border:1px solid var(--line);
   border-radius:12px;
 }
+
+/* ============================================================
+   Component ตาม design/template.html
+   ============================================================ */
+
+/* ตัวคั่น ✦ — ใช้กับ st.divider() ทุกตัว */
+hr{
+  border:none !important;
+  height:16px !important;
+  background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent) center/72% 1px no-repeat !important;
+  text-align:center;
+  overflow:visible !important;
+  margin:1.7rem 0 !important;
+}
+hr::before{
+  content:"✦";
+  color:var(--ember);
+  background:var(--sky-1);
+  padding:0 14px;
+  position:relative;
+  top:-9px;
+  font-size:.95rem;
+}
+
+/* Hero หัวเว็บ */
+.nl-eyebrow{
+  text-transform:uppercase;letter-spacing:.2em;font-size:.76rem;
+  color:var(--ember-hi);font-weight:600;text-align:center;margin:10px 0 4px;
+}
+.nl-title{
+  font-family:"Playfair Display","Trirong",Georgia,serif;
+  color:var(--ivory);font-size:2.5rem;font-weight:600;line-height:1.2;
+  text-align:center;margin:0;
+}
+.nl-title .hl{color:var(--ember)}
+.nl-lede{text-align:center;color:var(--text-dim);font-size:.95rem;margin:6px 0 2px}
+
+/* การ์ดผลคำทำนาย (เบอร์ + เกรด) */
+.nl-result{
+  background:linear-gradient(160deg,var(--sky-2),#151d3d);
+  border:1px solid var(--line);border-radius:14px;
+  padding:24px 24px 20px;text-align:center;margin:14px 0 4px;
+}
+.nl-result .num{
+  font-family:"Playfair Display","Trirong",Georgia,serif;
+  font-size:2rem;letter-spacing:.14em;color:var(--ivory);
+  font-variant-numeric:tabular-nums;
+}
+.nl-result .grade{
+  color:var(--ember-hi);letter-spacing:.16em;text-transform:uppercase;
+  font-size:.8rem;font-weight:600;margin-top:6px;
+}
+
+/* Footer แคปซูล */
+.nl-foot{text-align:center;margin:2.4rem 0 .8rem}
+.nl-foot .stars{color:var(--ember);letter-spacing:.6em;margin-bottom:16px;font-size:.95rem}
+.nl-pill{
+  display:inline-block;border:1.5px solid var(--ember);border-radius:999px;
+  padding:10px 32px;color:var(--ember-hi) !important;font-weight:600;
+  text-decoration:none !important;transition:.2s;
+}
+.nl-pill:hover{background:rgba(232,121,46,.1)}
