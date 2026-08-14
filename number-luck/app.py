@@ -120,16 +120,64 @@ with st.expander(T["couple_expander"]):
 
 go = st.button(T["analyze"], type="primary", use_container_width=True)
 
+# ---------- หน้ารอผล: กงล้อราศีพม่าหมุน ----------
+import base64 as _b64
+import time as _time
+
+_LOADING_TXT = {
+    "th": ("คำทำนายกำลังจะมา...", "กงล้อราศีพม่ากำลังคำนวณดวงเบอร์ของคุณ"),
+    "en": ("Your prophecy is coming...", "The Burmese zodiac wheel is reading your number"),
+    "mm": ("ဗေဒင်ဟောစာ လာနေပါပြီ...", "မြန်မာ့ရာသီစက်ဝန်းက သင့်နံပါတ်ကို တွက်ချက်နေသည်"),
+}
+
+
+def _show_loading(placeholder, lang):
+    wheel = _asset("loading_wheel.webp")
+    if not wheel:
+        return
+    b64 = _b64.b64encode(open(wheel, "rb").read()).decode()
+    head, sub = _LOADING_TXT[lang]
+    placeholder.markdown(f"""
+<style>
+@keyframes nl-spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
+@keyframes nl-pulse {{ 0%,100% {{ opacity: .55; }} 50% {{ opacity: 1; }} }}
+@keyframes nl-glow {{ 0%,100% {{ filter: drop-shadow(0 0 18px rgba(255,150,50,.35)); }}
+                      50% {{ filter: drop-shadow(0 0 42px rgba(255,170,60,.75)); }} }}
+.nl-loadwrap {{ position: fixed; inset: 0; z-index: 999999;
+  background: radial-gradient(ellipse at center, #101b30 0%, #0a1220 65%, #060b16 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }}
+.nl-wheel {{ width: min(58vw, 340px); height: auto; border-radius: 50%;
+  animation: nl-spin 7s linear infinite, nl-glow 2.6s ease-in-out infinite; }}
+.nl-loadhead {{ font-size: 1.35rem; font-weight: 700; color: #ffb45e; letter-spacing: .04em;
+  animation: nl-pulse 1.8s ease-in-out infinite; text-align: center; padding: 0 18px; }}
+.nl-loadsub {{ font-size: .9rem; color: #8fa3c4; text-align: center; padding: 0 24px;
+  animation: nl-pulse 2.4s ease-in-out infinite; }}
+.nl-stars {{ color: #ffcf87; letter-spacing: 14px; animation: nl-pulse 2s ease-in-out infinite; }}
+</style>
+<div class="nl-loadwrap">
+  <img class="nl-wheel" src="data:image/webp;base64,{b64}" alt="">
+  <div class="nl-loadhead">🔮 {head}</div>
+  <div class="nl-loadsub">{sub}</div>
+  <div class="nl-stars">✦ ✦ ✦</div>
+</div>
+""", unsafe_allow_html=True)
+
 if go and number:
     core = extract_core(number)
     if not core.isdigit() or not (7 <= len(core) <= 9):
         st.error(T["bad_number"])
         st.stop()
 
+    # หน้ารอผลเต็มจอ: กงล้อหมุน + ข้อความ "คำทำนายกำลังจะมา"
+    _overlay = st.empty()
+    _show_loading(_overlay, lang)
+    _time.sleep(4.2)
+
     r = score_number(number)
     sm = sum_analysis(r["full"])
     mm = myanmar_analysis(r["full"])
     adj = round(min(100.0, max(0.0, r["grade100"] + sm["bonus"] + mm["bonus"])), 1)
+    _overlay.empty()  # ปิดหน้ารอผล แล้วโชว์คำทำนาย
 
     # ---------- Header ----------
     st.divider()
