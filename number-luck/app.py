@@ -97,6 +97,200 @@ st.markdown(f"""
 <p class="nl-lede">{T["tagline"]}</p>
 """, unsafe_allow_html=True)
 
+# ---------- เมนูหน้าแรก: เลือกก่อนว่าอยากดูดวงเรื่องไหน ----------
+from muhurta import (ACTIVITIES, rank_days, today_fortune, REASON_TR,
+                     UI as MUI, DIRECTION_TR, SHENGXIAO_TR)
+from mmcal import astro_day as _astro_day
+
+MENU = {
+    "number": {"img": "menu_number.png",
+               "th": "ดูดวงเบอร์โทร", "en": "Phone Number Reading", "mm": "ဖုန်းနံပါတ် ဗေဒင်",
+               "sub": {"th": "เกรดเบอร์ · คู่เลข · คำทำนายครบทุกศาสตร์",
+                       "en": "Grade, number pairs & full reading",
+                       "mm": "အဆင့် · ဂဏန်းအတွဲ · ဟောစာတမ်းအပြည့်အစုံ"}},
+    "muhurta": {"img": "menu_muhurta.png",
+                "th": "หาฤกษ์มงคล", "en": "Auspicious Dates", "mm": "မင်္ဂလာရက် ရွေးရန်",
+                "sub": {"th": "เปิดร้าน แต่งงาน ย้ายบ้าน — จีน+พม่า 30 วัน",
+                        "en": "Business, wedding, moving — CN+MM, 30 days",
+                        "mm": "ဆိုင်ဖွင့် · လက်ထပ် · အိမ်ပြောင်း — တရုတ်+မြန်မာ ရက် ၃၀"}},
+    "today": {"img": "menu_today.png",
+              "th": "ดวงวันนี้", "en": "Today's Fortune", "mm": "ယနေ့ ဗေဒင်",
+              "sub": {"th": "วันนี้ชงไหม · ทิศรับทรัพย์ · ชั่วโมงมงคล",
+                      "en": "Zodiac clash · wealth direction · lucky hours",
+                      "mm": "ထိပ်တိုက်ရက် · ဥစ္စာလာရာအရပ် · မင်္ဂလာအချိန်"}},
+    "couple": {"img": "menu_couple.png",
+               "th": "ดวงคู่", "en": "Couple Compatibility", "mm": "စုံတွဲ လိုက်ဖက်မှု",
+               "sub": {"th": "เบอร์คู่รัก · วันเกิดคู่เวรคู่มิตร",
+                       "en": "Number pair & birthday match",
+                       "mm": "ဖုန်းနံပါတ်တွဲ · မွေးနေ့ မိတ်/ရန်"}},
+}
+_BACK = {"th": "⬅️ กลับหน้าแรก", "en": "⬅️ Home", "mm": "⬅️ ပင်မစာမျက်နှာ"}
+
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+
+def _goto(p):
+    st.session_state.page = p
+
+
+page = st.session_state.page
+
+if page != "home":
+    st.button(_BACK[lang], on_click=_goto, args=("home",))
+
+# ============ หน้าแรก: ไอคอนเมนู ============
+if page == "home":
+    cols = st.columns(2)
+    for i, (key, m) in enumerate(MENU.items()):
+        with cols[i % 2]:
+            img = _asset(m["img"])
+            if img:
+                st.image(img, use_container_width=True)
+            st.button(m[lang], key=f"menu_{key}", use_container_width=True,
+                      type="primary", on_click=_goto, args=(key,))
+            st.caption(m["sub"][lang])
+    st.markdown("""
+<div class="nl-foot">
+  <div class="stars">✦ ✦ ✦</div>
+  <a class="nl-pill" href="https://ft.jbacworkhub.com">🌐 ft.jbacworkhub.com</a>
+</div>
+""", unsafe_allow_html=True)
+    st.stop()
+
+# ============ หน้าหาฤกษ์มงคล ============
+if page == "muhurta":
+    M = MUI[lang]
+    st.subheader({"th": "📅 หาฤกษ์มงคลทำกิจการ (จีน 通勝 + พม่า)",
+                  "en": "📅 Find an Auspicious Date (Chinese almanac + Burmese)",
+                  "mm": "📅 မင်္ဂလာရက် ရွေးခြင်း (တရုတ် + မြန်မာ)"}[lang])
+    act = st.selectbox({"th": "อยากทำอะไร", "en": "What are you planning?", "mm": "ဘာလုပ်ချင်ပါသလဲ"}[lang],
+                       options=list(ACTIVITIES),
+                       format_func=lambda k: ACTIVITIES[k]["icon"] + " " + ACTIVITIES[k][lang])
+    use_bd_m = st.checkbox(T["bd_check"], value=True, key="mu_ubd")
+    bd_m = st.date_input(T["bd_label"], value=dt.date(1995, 1, 1),
+                         min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="mu_bd")
+    wed_pm_m = st.checkbox(T["wed_pm"], value=False, key="mu_wp") if bd_m.weekday() == 2 else False
+    if st.button({"th": "🔍 หาฤกษ์ 30 วันข้างหน้า", "en": "🔍 Rank the next 30 days",
+                  "mm": "🔍 နောက် ရက် ၃၀ ရှာရန်"}[lang], type="primary", use_container_width=True):
+        with st.spinner("..."):
+            res = rank_days(act, dt.date.today(), 30, bd_m if use_bd_m else None, wed_pm_m)
+        lvl_txt = {"best": "🟢 " + M["best"], "good": "🟢 " + M["good"],
+                   "ok": "⚪ " + M["ok"], "avoid": "🔴 " + M["avoid"]}
+        b = res[0]
+        why_b = " · ".join(REASON_TR[k][lang] for k, v in b["reasons"] if v > 0) or "—"
+        st.success(f"**{M['best']}: {b['date'].strftime('%d/%m/%Y')} "
+                   f"({WEEKDAY_TR[lang][_astro_day(b['date'])['wd']]})** — {why_b}")
+        rows = []
+        for x in res[:10]:
+            why = " · ".join(REASON_TR[k][lang] for k, _v in x["reasons"][:3]) or "—"
+            rows.append({T["col_date"]: x["date"].strftime("%d/%m"),
+                         T["col_day"]: WEEKDAY_TR[lang][_astro_day(x["date"])["wd"]],
+                         "": lvl_txt[x["level"]],
+                         M["cn_score"]: f"{x['cn']:+d}", M["mm_score"]: f"{x['mm']:+d}",
+                         T["col_why"] if "col_why" in T else "✧": why})
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+        avoid = [x for x in res if x["excluded"]][:5]
+        if avoid:
+            st.warning("🚫 " + M["avoid"] + ": " +
+                       ", ".join(sorted(x["date"].strftime("%d/%m") for x in avoid)))
+        st.caption({"th": "อิงปฏิทินจีนสาย 6tail (通勝) + ปฏิทินโหราศาสตร์พม่า — ความเชื่อวัฒนธรรม โปรดใช้วิจารณญาณ",
+                    "en": "Based on the 6tail Chinese almanac + Burmese astrological calendar — cultural belief, use judgment",
+                    "mm": "6tail တရုတ်ပြက္ခဒိန် + မြန်မာဗေဒင်ပြက္ခဒိန် အခြေခံ — ယုံကြည်မှုအရသာ"}[lang])
+    st.stop()
+
+# ============ หน้าดวงวันนี้ ============
+if page == "today":
+    M = MUI[lang]
+    st.subheader({"th": "☀️ ดวงวันนี้ของคุณ", "en": "☀️ Your Fortune Today",
+                  "mm": "☀️ ယနေ့ သင့်ကံကြမ္မာ"}[lang])
+    use_bd_t = st.checkbox(T["bd_check"], value=True, key="td_ubd")
+    bd_t = st.date_input(T["bd_label"], value=dt.date(1995, 1, 1),
+                         min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="td_bd")
+    wed_pm_t = st.checkbox(T["wed_pm"], value=False, key="td_wp") if bd_t.weekday() == 2 else False
+    tf = today_fortune(dt.date.today(), bd_t if use_bd_t else None, wed_pm_t)
+    c1, c2, c3 = st.columns(3)
+    c1.metric({"th": "วันที่", "en": "Date", "mm": "နေ့စွဲ"}[lang], tf["date"].strftime("%d/%m/%Y"))
+    cai = DIRECTION_TR.get(tf["cai_direction"], {}).get(lang, tf["cai_direction"])
+    c2.metric(M["cai_dir"], cai)
+    c3.metric({"th": "คะแนนวันนี้", "en": "Day score", "mm": "ယနေ့အမှတ်"}[lang], f"{tf['score']:+d}")
+    if tf["zodiac"]:
+        z = SHENGXIAO_TR.get(tf["zodiac"], {}).get(lang, tf["zodiac"])
+        if tf["chong_today"]:
+            st.warning(M["chong_you"].format(z=z))
+        else:
+            st.success(M["no_chong"].format(z=z))
+    if tf["yatyaza"]:
+        st.success("⭐ " + REASON_TR["yatyaza"][lang])
+    if tf["pyathada"] == 1:
+        st.warning("⚠️ " + REASON_TR["pyathada"][lang])
+    elif tf["pyathada"] == 2:
+        st.info(REASON_TR["pyathada_pm"][lang])
+    if tf["sabbath"]:
+        st.info("🙏 " + REASON_TR["sabbath"][lang])
+    st.markdown(f"**{M['lucky_hours']}** — " +
+                (" · ".join(h["span"] for h in tf["hours"]) or "—"))
+    st.caption(M["hour_note"])
+    with st.expander({"th": "เหตุผลของคะแนนวันนี้", "en": "Why this score?",
+                      "mm": "အမှတ်အကြောင်းရင်း"}[lang]):
+        for k, v in tf["reasons"]:
+            icon = "🟢" if v > 0 else ("🔴" if v < 0 else "⚪")
+            st.write(f"{icon} {REASON_TR[k][lang]} ({v:+d})")
+    st.stop()
+
+# ============ หน้าดวงคู่ ============
+if page == "couple":
+    st.subheader(NUMPAIR_UI[lang]["head"])
+    cn1 = st.text_input(T["phone_label"] + " ①", placeholder="09XXXXXXXXX", key="cp_n1")
+    cn2 = st.text_input(NUMPAIR_UI[lang]["num2_label"] + " ②", placeholder="09XXXXXXXXX", key="cp_n2")
+    use_bd_c = st.checkbox(T["couple_check"], value=False, key="cp_ubd")
+    cbd1 = st.date_input(T["bd_label"] + " ①", value=dt.date(1995, 1, 1),
+                         min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="cp_b1")
+    cbd2 = st.date_input(T["bd2_label"] + " ②", value=dt.date(1996, 6, 15),
+                         min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="cp_b2")
+    if st.button(T["analyze"], type="primary", use_container_width=True, key="cp_go"):
+        c1_, c2_ = extract_core(cn1), extract_core(cn2)
+        ok = all(c.isdigit() and 7 <= len(c) <= 9 for c in (c1_, c2_))
+        if not ok and not use_bd_c:
+            st.error(T["bad_number"])
+        if ok:
+            np_ = couple_numbers(c1_, c2_)
+            st.metric(NUMPAIR_UI[lang]["score"], f"{np_['score']}/100")
+            v = numpair_verdict(np_["score"], lang)
+            (st.success if np_["score"] >= 55 else (st.info if np_["score"] >= 40 else st.warning))(v)
+            st.write("• " + NUMPAIR_UI[lang]["tail_line"].format(a=np_["tail"]["a"], b=np_["tail"]["b"])
+                     + " — " + NUMPAIR_REL[lang][np_["tail"]["rel"]])
+            st.write("• " + NUMPAIR_UI[lang]["top_line"].format(
+                a=np_["top"]["a"], sa=star_name(str(np_["top"]["a"]), lang),
+                b=np_["top"]["b"], sb=star_name(str(np_["top"]["b"]), lang))
+                + " — " + NUMPAIR_REL[lang][np_["top"]["rel"]])
+        if use_bd_c:
+            k1 = day_key_from_date(cbd1)
+            k2 = day_key_from_date(cbd2)
+            cc = couple_compatibility(k1, k2)
+            st.markdown(f"{T['person1']}: **{day_name(k1)}** ({day_animal(k1)}) × "
+                        f"{T['person2']}: **{day_name(k2)}** ({day_animal(k2)})")
+            if lang == "th":
+                tone_txt, body = cc["tone"], cc["text"]
+            else:
+                tone_txt = COUPLE_TONE[lang][cc["tone"]]
+                p1, p2 = star_name(str(DAYS[k1]["num"]), lang), star_name(str(DAYS[k2]["num"]), lang)
+                if frozenset((k1, k2)) in COUPLE_CLASH:
+                    body = COUPLE_TEXT[lang]["clash"]
+                else:
+                    rel = relation(DAYS[k1]["num"], DAYS[k2]["num"])
+                    body = COUPLE_TEXT[lang][rel].format(p1=p1, p2=p2, d=day_name(k1))
+            if cc["tone"] in ("ดีมาก", "ดี"):
+                st.success(f"{tone_txt} — {body}")
+            elif cc["tone"] == "กลาง":
+                st.info(f"{tone_txt} — {body}")
+            else:
+                st.warning(f"{tone_txt} — {body}")
+                st.caption(T["couple_note"])
+    st.stop()
+
+# ============ หน้าดูดวงเบอร์ (โค้ดเดิมด้านล่าง) ============
+
 # ---------- Inputs ----------
 number = st.text_input(T["phone_label"], placeholder="09XXXXXXXXX")
 
