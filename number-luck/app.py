@@ -27,6 +27,7 @@ from i18n import (UI, LANGS, star_name, pair_title_i18n, pair_desc_i18n, pair_pa
                   HORO_UI, HORO_REASON, ZODIAC_TR, horo_reason_text)
 from horoscope import weekly_fortune, monthly_fortune
 from meanings import DIGIT_LONG
+from cheiro import CHEIRO_UI, cheiro_compound, mulank_compat
 
 st.set_page_config(page_title="Number Luck", page_icon="🔮", layout="centered")
 
@@ -211,6 +212,19 @@ if go and number:
             for n in notes:
                 st.write("★ " + n)
 
+    # ---------- ชั้น 4: เลขผสมสากล Cheiro ----------
+    CU = CHEIRO_UI[lang]
+    ch = cheiro_compound(sm["total"])
+    st.subheader(CU["head"])
+    if ch["compound"]:
+        ch_icon = {"ดี": "🟢", "ระวัง": "🔴", "กลาง": "⚪"}[ch["tone"]]
+        st.markdown(f"**{CU['compound']}: {sm['total']} → {ch['compound']} — "
+                    f"\u201c{ch['name'][lang]}\u201d** {ch_icon} ({CU['tone'][ch['tone']]})")
+        st.write(ch["text"][lang])
+    else:
+        st.write(CU["single"])
+    st.caption(CU["note"])
+
     # ---------- Birthday compatibility ----------
     name_day, name_pref = day_from_name(owner_name) if owner_name else (None, None)
     if use_bd or name_day:
@@ -280,6 +294,21 @@ if go and number:
             if worst["score"] < 55:
                 st.warning(f"**{B['verdict_low']}:** {FACTOR_NAME[lang][worst['key']]} ({worst['score']:.0f}/100) — "
                            + factor_comment(worst, lang, star_name))
+
+        # ---------- ชั้น 4: ความเข้ากันแบบอินเดีย (Mulank) ----------
+        if use_bd:
+            mk = mulank_compat(bd.day, sm["total"])
+            with st.expander(CU["mulank_head"], expanded=False):
+                st.markdown(CU["mulank_line"].format(
+                    d=bd.day, m=mk["mulank"], pm=mk["mulank_planet"][lang],
+                    r=mk["root"], pr=mk["root_planet"][lang]))
+                if mk["score"] >= 1:
+                    st.success(mk["verdict"][lang])
+                elif mk["score"] == 0:
+                    st.info(mk["verdict"][lang])
+                else:
+                    st.warning(mk["verdict"][lang])
+                st.caption(CU["note"])
 
         # ---------- Mahabote full chart (ต้องมีปีเกิด) ----------
         if use_bd:

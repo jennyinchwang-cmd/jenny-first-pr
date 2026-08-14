@@ -30,6 +30,7 @@ from i18n import (star_name, pair_title_i18n, pair_desc_i18n, pair_paragraph_i18
                   HORO_UI, ZODIAC_TR, horo_reason_text, numpair_verdict)
 from report import CAREER_BY_DIGIT
 from meanings import DIGIT
+from cheiro import cheiro_compound, mulank_compat
 
 app = FastAPI(title="Number Luck API", version="1.0",
               description="Myanmar phone number fortune API — พม่า+จีน+อินเดีย 3 ภาษา")
@@ -99,6 +100,14 @@ def analyze(number: str, lang: str = "th", birthdate: Optional[str] = None,
                    "text": sm["text"] if lang == "th" else SUM_TONE_TEXT[lang][sm["tone"]]},
            "nawin": {"nines": r["full"].count("9"), "bonus": mm_["bonus"]}}
 
+    # ชั้น 4: เลขผสม Cheiro ของผลรวม
+    ch = cheiro_compound(sm["total"])
+    if ch["compound"]:
+        out["cheiro"] = {"compound": ch["compound"], "root": ch["root"], "tone": ch["tone"],
+                         "name": ch["name"][lang], "text": ch["text"][lang]}
+    else:
+        out["cheiro"] = {"compound": None, "root": ch["root"]}
+
     bd = _parse_date(birthdate)
     day_key = None
     if not bd and name:
@@ -124,6 +133,11 @@ def analyze(number: str, lang: str = "th", birthdate: Optional[str] = None,
             out["compatibility"]["mahabote"] = [
                 {"house": c["no"], "name": c["name"], "nature": c["nature"], "planet": c["planet"]}
                 for c in mahabote_full_chart(bd)]
+            mk = mulank_compat(bd.day, sm["total"])
+            out["compatibility"]["mulank"] = {
+                "mulank": mk["mulank"], "root": mk["root"], "score": mk["score"],
+                "mulank_planet": mk["mulank_planet"][lang], "root_planet": mk["root_planet"][lang],
+                "verdict": mk["verdict"][lang]}
     return out
 
 
