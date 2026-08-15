@@ -31,21 +31,23 @@ def _run_couple(lang_idx):
     return at
 
 
-TOKENS = {
-    "th": ["พม่า", "จีน", "ไทย", "ตะวันตก"],
-    "en": ["Burmese", "Chinese", "Thai", "Western"],
-    "mm": ["မြန်မာ့", "တရုတ်", "ထိုင်း", "အနောက်တိုင်း"],
+CHECKS = {
+    "th": {"sub": "เนื้อคู่", "remedy": "ทางแก้ไขดวง", "factors": "สรุปจากแต่ละศาสตร์", "soulmate": "เนื้อคู่ของคุณสองคน"},
+    "en": {"sub": "soulmate", "remedy": "strengthen", "factors": "By tradition", "soulmate": "Your soulmate match"},
+    "mm": {"sub": "ဘဝဖော်", "remedy": "ကံကို ပြုပြင်နည်း", "factors": "ပညာရပ်အလိုက်", "soulmate": "နှစ်ဦး၏ ဘဝဖော်"},
 }
 
 for i, lang in enumerate(["th", "en", "mm"]):
     at = _run_couple(i)
-    subs = [s.value for s in at.subheader]
+    subs = " ".join(str(s.value) for s in at.subheader)
     md = " ".join(str(m.value) for m in at.markdown)
-    assert any("ศาสตร์" in s or "traditions" in s or "ပညာရပ်" in s for s in subs), (lang, subs)
-    for token in TOKENS[lang]:
-        assert token in md or token in " ".join(subs), (lang, token)
-    # ห้ามมีคะแนนรวม % (metric เก่าถูกถอดแล้ว)
-    assert "70%" not in md and "Overall compatibility" not in md
+    exp_labels = " ".join(str(e.label) for e in at.expander)
+    c = CHECKS[lang]
+    assert c["sub"] in subs, (lang, subs)
+    assert "%" in md, (lang, "no score %")
+    assert c["factors"] in md, (lang, "no factors head")
+    assert c["soulmate"] in md, (lang, "no soulmate")
+    assert c["remedy"] in exp_labels, (lang, exp_labels)
     print(lang, "OK —", len(md), "chars rendered")
 
 

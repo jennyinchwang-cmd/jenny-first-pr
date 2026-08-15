@@ -34,7 +34,7 @@ from burmese_couple import analyze_burmese, WED_UNKNOWN
 from chinese_couple import analyze_chinese
 from thai_couple import analyze_thai, THAKSA_REGIONS as _THAKSA_ORDER
 from western_couple import analyze_western
-from convergence import synthesize
+from couple_score import score_couple
 
 st.set_page_config(page_title="Number Luck", page_icon="🔮", layout="centered")
 
@@ -93,6 +93,48 @@ _DAY_IMG = {"sun": "day_sun_garuda.png", "mon": "day_mon_tiger.png", "tue": "day
 def _asset(name):
     p = _os.path.join(_ASSET_DIR, name)
     return p if _os.path.exists(p) else None
+
+
+import base64 as _b64
+import time as _time
+
+_LOADING_TXT = {
+    "th": ("คำทำนายกำลังจะมา...", "กงล้อราศีพม่ากำลังคำนวณดวงของคุณ"),
+    "en": ("Your prophecy is coming...", "The Burmese zodiac wheel is reading your fate"),
+    "mm": ("ဗေဒင်ဟောစာ လာနေပါပြီ...", "မြန်မာ့ရာသီစက်ဝန်းက သင့်ကံကို တွက်ချက်နေသည်"),
+}
+
+
+def _show_loading(placeholder, lang):
+    wheel = _asset("loading_wheel.webp")
+    if not wheel:
+        return
+    b64 = _b64.b64encode(open(wheel, "rb").read()).decode()
+    head, sub = _LOADING_TXT[lang]
+    placeholder.markdown(f"""
+<style>
+@keyframes nl-spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
+@keyframes nl-pulse {{ 0%,100% {{ opacity: .55; }} 50% {{ opacity: 1; }} }}
+@keyframes nl-glow {{ 0%,100% {{ filter: drop-shadow(0 0 18px rgba(255,150,50,.35)); }}
+                      50% {{ filter: drop-shadow(0 0 42px rgba(255,170,60,.75)); }} }}
+.nl-loadwrap {{ position: fixed; inset: 0; z-index: 999999;
+  background: radial-gradient(ellipse at center, #101b30 0%, #0a1220 65%, #060b16 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }}
+.nl-wheel {{ width: min(58vw, 340px); height: auto; border-radius: 50%;
+  animation: nl-spin 7s linear infinite, nl-glow 2.6s ease-in-out infinite; }}
+.nl-loadhead {{ font-size: 1.35rem; font-weight: 700; color: #ffb45e; letter-spacing: .04em;
+  animation: nl-pulse 1.8s ease-in-out infinite; text-align: center; padding: 0 18px; }}
+.nl-loadsub {{ font-size: .9rem; color: #8fa3c4; text-align: center; padding: 0 24px;
+  animation: nl-pulse 2.4s ease-in-out infinite; }}
+.nl-stars {{ color: #ffcf87; letter-spacing: 14px; animation: nl-pulse 2s ease-in-out infinite; }}
+</style>
+<div class="nl-loadwrap">
+  <img class="nl-wheel" src="data:image/webp;base64,{b64}" alt="">
+  <div class="nl-loadhead">🔮 {head}</div>
+  <div class="nl-loadsub">{sub}</div>
+  <div class="nl-stars">✦ ✦ ✦</div>
+</div>
+""", unsafe_allow_html=True)
 
 
 _hero = _asset("hero_banner.png")
@@ -188,8 +230,11 @@ if page == "muhurta":
     wed_pm_m = st.checkbox(T["wed_pm"], value=False, key="mu_wp") if bd_m.weekday() == 2 else False
     if st.button({"th": "🔍 หาฤกษ์ 30 วันข้างหน้า", "en": "🔍 Rank the next 30 days",
                   "mm": "🔍 နောက် ရက် ၃၀ ရှာရန်"}[lang], type="primary", use_container_width=True):
-        with st.spinner("..."):
-            res = rank_days(act, dt.date.today(), 30, bd_m if use_bd_m else None, wed_pm_m)
+        _overlay = st.empty()
+        _show_loading(_overlay, lang)
+        _time.sleep(3.5)
+        _overlay.empty()
+        res = rank_days(act, dt.date.today(), 30, bd_m if use_bd_m else None, wed_pm_m)
         lvl_txt = {"best": "🟢 " + M["best"], "good": "🟢 " + M["good"],
                    "ok": "⚪ " + M["ok"], "avoid": "🔴 " + M["avoid"]}
         b = res[0]
@@ -227,94 +272,100 @@ if page == "today":
     bd_t = st.date_input(T["bd_label"], value=dt.date(1995, 1, 1),
                          min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="td_bd")
     wed_pm_t = st.checkbox(T["wed_pm"], value=False, key="td_wp") if bd_t.weekday() == 2 else False
-    _today = dt.date.today()
-    tf = today_fortune(_today, bd_t if use_bd_t else None, wed_pm_t)
 
-    # ---- ย่อหน้าเปิด: ดาววันนี้ × ดาววันเกิด ----
-    tk = day_key_from_date(_today)
-    tnum = DAYS[tk]["num"]
-    day_lbl = day_name(tk)
-    planet_lbl = star_name(str(tnum), lang)
-    if use_bd_t:
-        bk_t = day_key_from_date(bd_t, wed_pm_t)
-        rel_t = relation(DAYS[bk_t]["num"], tnum)
-        rel_key = rel_t if rel_t in ("มิตร", "เสริม", "ศัตรู") else "กลาง"
-        bp_lbl = star_name(str(DAYS[bk_t]["num"]), lang)
-        st.markdown(FT.TODAY_OPEN[rel_key][lang].format(day=day_lbl, p=planet_lbl, bp=bp_lbl))
-    else:
-        rel_key = "กลาง"
-        st.markdown(FT.TODAY_OPEN["none"][lang].format(day=day_lbl, p=planet_lbl))
+    go_t = st.button({"th": "🔮 ดูดวงวันนี้", "en": "🔮 Read today's fortune",
+                      "mm": "🔮 ယနေ့ဗေဒင် ဖတ်ရန်"}[lang], type="primary", use_container_width=True)
+    if go_t:
+        _overlay = st.empty()
+        _show_loading(_overlay, lang)
+        _time.sleep(4.0)
+        _overlay.empty()
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric({"th": "วันที่", "en": "Date", "mm": "နေ့စွဲ"}[lang], tf["date"].strftime("%d/%m/%Y"))
-    cai = DIRECTION_TR.get(tf["cai_direction"], {}).get(lang, tf["cai_direction"])
-    c2.metric(M["cai_dir"], cai)
-    c3.metric({"th": "คะแนนวันนี้", "en": "Day score", "mm": "ယနေ့အမှတ်"}[lang], f"{tf['score']:+d}")
+    if go_t:
+        _today = dt.date.today()
+        tf = today_fortune(_today, bd_t if use_bd_t else None, wed_pm_t)
 
-    if tf["zodiac"]:
-        z = SHENGXIAO_TR.get(tf["zodiac"], {}).get(lang, tf["zodiac"])
-        if tf["chong_today"]:
-            st.warning(FT.TODAY_ADVICE[lang]["chong_warn"].format(z=z))
+        # ---- ย่อหน้าเปิด: ดาววันนี้ × ดาววันเกิด ----
+        tk = day_key_from_date(_today)
+        tnum = DAYS[tk]["num"]
+        day_lbl = day_name(tk)
+        planet_lbl = star_name(str(tnum), lang)
+        if use_bd_t:
+            bk_t = day_key_from_date(bd_t, wed_pm_t)
+            rel_t = relation(DAYS[bk_t]["num"], tnum)
+            rel_key = rel_t if rel_t in ("มิตร", "เสริม", "ศัตรู") else "กลาง"
+            bp_lbl = star_name(str(DAYS[bk_t]["num"]), lang)
+            st.markdown(FT.TODAY_OPEN[rel_key][lang].format(day=day_lbl, p=planet_lbl, bp=bp_lbl))
         else:
-            st.success(M["no_chong"].format(z=z))
-    if tf["yatyaza"]:
-        st.success("⭐ " + REASON_TR["yatyaza"][lang])
-    if tf["pyathada"] == 1:
-        st.warning("⚠️ " + REASON_TR["pyathada"][lang])
-    elif tf["pyathada"] == 2:
-        st.info(REASON_TR["pyathada_pm"][lang])
+            rel_key = "กลาง"
+            st.markdown(FT.TODAY_OPEN["none"][lang].format(day=day_lbl, p=planet_lbl))
 
-    # ---- ดวงรายด้าน 4 ด้าน ตามดาวผู้ครองวัน ----
-    A = FT.ASPECT_HEAD[lang]
-    st.markdown("**" + A["head"].format(p=planet_lbl) + "**")
-    asp_src = DIGIT_LONG if lang == "th" else DIGIT_TR[lang]
-    a_txt = asp_src[str(tnum)]
-    ac1, ac2 = st.columns(2)
-    ac1.markdown(f"{A['money']} — {a_txt['money']}")
-    ac2.markdown(f"{A['work']} — {a_txt['work']}")
-    ac3, ac4 = st.columns(2)
-    ac3.markdown(f"{A['love']} — {a_txt['love']}")
-    ac4.markdown(f"{A['health']} — {a_txt['health']}")
+        c1, c2, c3 = st.columns(3)
+        c1.metric({"th": "วันที่", "en": "Date", "mm": "နေ့စွဲ"}[lang], tf["date"].strftime("%d/%m/%Y"))
+        cai = DIRECTION_TR.get(tf["cai_direction"], {}).get(lang, tf["cai_direction"])
+        c2.metric(M["cai_dir"], cai)
+        c3.metric({"th": "คะแนนวันนี้", "en": "Day score", "mm": "ယနေ့အမှတ်"}[lang], f"{tf['score']:+d}")
 
-    # ---- คำแนะนำปฏิบัติ ----
-    st.divider()
-    ADV = FT.TODAY_ADVICE[lang]
-    st.markdown(ADV["cai"].format(dir=cai))
-    hours_s = " · ".join(h["span"] for h in tf["hours"][:5]) or "—"
-    st.markdown(ADV["hours"].format(hours=hours_s))
-    st.caption(M["hour_note"])
-    if use_bd_t:
-        st.markdown(ADV["lucky"].format(bday=day_name(bk_t), num=DAYS[bk_t]["num"],
-                                        color=FT.DAY_COLOR[bk_t][lang]))
-    if tf["sabbath"]:
-        st.info(ADV["sabbath_extra"])
+        if tf["zodiac"]:
+            z = SHENGXIAO_TR.get(tf["zodiac"], {}).get(lang, tf["zodiac"])
+            if tf["chong_today"]:
+                st.warning(FT.TODAY_ADVICE[lang]["chong_warn"].format(z=z))
+            else:
+                st.success(M["no_chong"].format(z=z))
+        if tf["yatyaza"]:
+            st.success("⭐ " + REASON_TR["yatyaza"][lang])
+        if tf["pyathada"] == 1:
+            st.warning("⚠️ " + REASON_TR["pyathada"][lang])
+        elif tf["pyathada"] == 2:
+            st.info(REASON_TR["pyathada_pm"][lang])
 
-    # ---- ท้ายบท: ให้กำลังใจตามโทนวัน ----
-    tone_key = "good" if tf["score"] >= 2 else ("low" if (tf["score"] <= -2 or rel_key == "ศัตรู"
-                                                          or tf["chong_today"]) else "mid")
-    pool = FT.TODAY_CLOSING[tone_key][lang]
-    st.markdown("> ✨ " + pool[_today.toordinal() % len(pool)])
+        # ---- ดวงรายด้าน 4 ด้าน ตามดาวผู้ครองวัน ----
+        A = FT.ASPECT_HEAD[lang]
+        st.markdown("**" + A["head"].format(p=planet_lbl) + "**")
+        asp_src = DIGIT_LONG if lang == "th" else DIGIT_TR[lang]
+        a_txt = asp_src[str(tnum)]
+        ac1, ac2 = st.columns(2)
+        ac1.markdown(f"{A['money']} — {a_txt['money']}")
+        ac2.markdown(f"{A['work']} — {a_txt['work']}")
+        ac3, ac4 = st.columns(2)
+        ac3.markdown(f"{A['love']} — {a_txt['love']}")
+        ac4.markdown(f"{A['health']} — {a_txt['health']}")
 
-    with st.expander({"th": "เหตุผลของคะแนนวันนี้", "en": "Why this score?",
-                      "mm": "အမှတ်အကြောင်းရင်း"}[lang]):
-        for k, v in tf["reasons"]:
-            icon = "🟢" if v > 0 else ("🔴" if v < 0 else "⚪")
-            st.write(f"{icon} {REASON_TR[k][lang]} ({v:+d})")
-    with st.expander(FT.GLOSSARY_HEAD[lang]):
-        for term, desc in FT.GLOSSARY[lang]:
-            st.markdown(f"**{term}**")
-            st.write(desc)
+        # ---- คำแนะนำปฏิบัติ ----
+        st.divider()
+        ADV = FT.TODAY_ADVICE[lang]
+        st.markdown(ADV["cai"].format(dir=cai))
+        hours_s = " · ".join(h["span"] for h in tf["hours"][:5]) or "—"
+        st.markdown(ADV["hours"].format(hours=hours_s))
+        st.caption(M["hour_note"])
+        if use_bd_t:
+            st.markdown(ADV["lucky"].format(bday=day_name(bk_t), num=DAYS[bk_t]["num"],
+                                            color=FT.DAY_COLOR[bk_t][lang]))
+        if tf["sabbath"]:
+            st.info(ADV["sabbath_extra"])
+
+        # ---- ท้ายบท: ให้กำลังใจตามโทนวัน ----
+        tone_key = "good" if tf["score"] >= 2 else ("low" if (tf["score"] <= -2 or rel_key == "ศัตรู"
+                                                              or tf["chong_today"]) else "mid")
+        pool = FT.TODAY_CLOSING[tone_key][lang]
+        st.markdown("> ✨ " + pool[_today.toordinal() % len(pool)])
+
+        with st.expander({"th": "เหตุผลของคะแนนวันนี้", "en": "Why this score?",
+                          "mm": "အမှတ်အကြောင်းရင်း"}[lang]):
+            for k, v in tf["reasons"]:
+                icon = "🟢" if v > 0 else ("🔴" if v < 0 else "⚪")
+                st.write(f"{icon} {REASON_TR[k][lang]} ({v:+d})")
+        with st.expander(FT.GLOSSARY_HEAD[lang]):
+            for term, desc in FT.GLOSSARY[lang]:
+                st.markdown(f"**{term}**")
+                st.write(desc)
     st.stop()
 
 # ============ หน้าดวงคู่ (4 ศาสตร์) ============
 if page == "couple":
-    C = CXT.CARDS
-    st.subheader({"th": "💞 ดวงคู่ 4 ศาสตร์ (วันเกิดเป็นหลัก)",
-                  "en": "💞 Couple Reading — 4 traditions (birthdays first)",
-                  "mm": "💞 စုံတွဲ လိုက်ဖက်မှု — ပညာရပ် ၄ မျိုး (မွေးနေ့ အဓိက)"}[lang])
-    st.caption({"th": "แสดงผลแยกตามศาสตร์ (พม่า / จีน / ไทย / ตะวันตก) ไม่รวมเป็นคะแนนเดียว",
-                "en": "Each tradition shown separately (Burmese / Chinese / Thai / Western) — never one blended score.",
-                "mm": "ပညာရပ်အလိုက် သီးခြားပြသည် (မြန်မာ / တရုတ် / ထိုင်း / အနောက်တိုင်း) — အမှတ်တစ်ခုတည်း ပေါင်းမပြပါ။"}[lang])
+    st.subheader({"th": "💞 ดวงคู่ (เนื้อคู่ + 4 ศาสตร์)",
+                  "en": "💞 Couple Reading (soulmate + 4 traditions)",
+                  "mm": "💞 စုံတွဲ ဗေဒင် (ဘဝဖော် + ပညာရပ် ၄ မျိုး)"}[lang])
 
     # ---- ① วันเกิด (หลัก) ----
     cc1, cc2 = st.columns(2)
@@ -340,6 +391,11 @@ if page == "couple":
     cn2 = nc2.text_input(NUMPAIR_UI[lang]["num2_label"] + " ②", placeholder="09XXXXXXXXX", key="cp_n2")
 
     if st.button(T["analyze"], type="primary", use_container_width=True, key="cp_go"):
+        _overlay = st.empty()
+        _show_loading(_overlay, lang)
+        _time.sleep(4.0)
+        _overlay.empty()
+
         def _sector(bd, wc):
             if wc is None:
                 return day_key_from_date(bd)
@@ -354,26 +410,11 @@ if page == "couple":
             "thai": analyze_thai(s1, s2),
             "western": analyze_western(cbd1, cbd2),
         }
-        syn = synthesize(res)
+        sc = score_couple(res)
+        vkey, band = sc["verdict_key"], sc["band"]
+        _emoji = {"green": "🟢", "teal": "🟩", "yellow": "🟡", "orange": "🟠", "red": "🔴"}[band]
 
-        def _src(res_):
-            with st.expander(CXT.SOURCE_HEAD[lang]):
-                seen = {}
-                for h in res_.production_hits():
-                    seen[h.source_id] = h.evidence_confidence
-                for sid, conf in seen.items():
-                    lbl = CXT.SOURCE_LABEL.get(sid, sid)[lang]
-                    st.write(f"• **{lbl}** — {CXT.CONF[conf][lang]}")
-                    u = source_url(sid)
-                    if u:
-                        st.caption(u)
-                shown = set()
-                for h in res_.production_hits():
-                    if h.note_key and h.note_key not in shown:
-                        st.caption(CXT.NOTES[h.note_key][lang])
-                        shown.add(h.note_key)
-
-        # ---- การ์ดโปรไฟล์สองคน (พื้นฐานพม่า: รูปสัตว์ + ดาว + นิสัย) ----
+        # ---- การ์ดสองคน ----
         pc1, pc2 = st.columns(2)
         for col, k, tag in ((pc1, s1, T["person1"]), (pc2, s2, T["person2"])):
             with col:
@@ -387,111 +428,32 @@ if page == "couple":
                     st.markdown(f"**{tag}: {day_name(k)}** — {star_name(str(DAYS[k]['num']), lang)} · {day_animal(k)}")
                     st.caption(f"{CXT.MM_FIELDS[lang]['trait']}: {day_trait(k)}")
 
-        # ---- 🇲🇲 การ์ดพม่า ----
-        st.markdown(f"### {C['burmese'][lang]['head']}")
-        st.caption(C["burmese"][lang]["sub"])
-        mb = res["burmese"].detail
-        for pkey, pdata, ptag in (("a", mb["a"], CXT.PERSON[lang]["a"]), ("b", mb["b"], CXT.PERSON[lang]["b"])):
-            pr = pdata["profile"]
-            if pr.get("unknown"):
-                st.markdown(f"**{ptag}**: {CXT.MM_FIELDS[lang]['wed_unknown']}")
-            else:
-                st.markdown(f"**{ptag}**: {CXT.MM_FIELDS[lang]['planet']} {pr['planet']} · "
-                            f"{CXT.MM_FIELDS[lang]['animal']} {pr['animal']} · {CXT.MM_FIELDS[lang]['dir']} {pr['dir']}")
-            st.caption(f"{CXT.MM_FIELDS[lang]['mahabote']}: {CXT.MAHABOTE_LABELS[lang][pdata['mahabote_idx']]} · "
-                       f"{CXT.MM_FIELDS[lang]['nakhat']}: {CXT.NAKHAT_LABELS[lang][pdata['nakhat_idx']]}")
-        st.caption(CXT.MM_PROFILE_ONLY[lang])
-        _src(res["burmese"])
+        # ---- สรุปความเหมาะสม (%) ----
+        st.markdown(f"### {CXT.SUMMARY_UI[lang]['head']}")
+        st.markdown(f"## {_emoji} {sc['score']}% — {CXT.VERDICT[vkey][lang]}")
+        st.caption(CXT.SUMMARY_UI[lang]['of'])
 
-        # ---- 🇨🇳 การ์ดจีน ----
-        st.markdown(f"### {C['chinese'][lang]['head']}")
-        st.caption(C["chinese"][lang]["sub"])
-        cd = res["chinese"].detail
-        for pkey, pdata, ptag in (("a", cd["a"], CXT.PERSON[lang]["a"]), ("b", cd["b"], CXT.PERSON[lang]["b"])):
-            br = pdata["branch"]; animal, elem, pol = pdata["info"]
-            st.markdown(f"**{ptag}**: {br} · {CXT.CN_ANIMAL[animal][lang]} · "
-                        f"{CXT.CN_ELEMENT[elem][lang]} · {CXT.CN_POLARITY[pol][lang]}")
-        rel_hits = [h for h in res["chinese"].production_hits() if h.scope == "relationship"]
-        if rel_hits:
-            _ICON = {"supportive": "🟢", "challenging": "🟠", "mixed": "🔵", "neutral": "⚪"}
-            for h in rel_hits:
-                st.markdown(f"{_ICON[h.polarity]} **{CXT.RULE_LABEL[h.rule_id][lang]}**")
-                if h.note_key:
-                    st.caption(CXT.NOTES[h.note_key][lang])
-        else:
-            st.write({"th": "ไม่พบกฎความสัมพันธ์กิ่งปี (อยู่ในกลุ่มกลาง)",
-                      "en": "No year-branch relationship rule matched (neutral).",
-                      "mm": "မွေးနှစ်ခန်း ဆက်စပ်မှုစည်းမျဉ်း မတွေ့ပါ (ကြားနေ)။"}[lang])
-        st.caption(CXT.CN_ONLY_WARN[lang])
-        if "near_year_boundary" in res["chinese"].limitations:
-            st.warning(CXT.CN_BOUNDARY_WARN[lang])
-        _src(res["chinese"])
+        # ---- เนื้อคู่ ----
+        st.markdown(f"**{CXT.SUMMARY_UI[lang]['soulmate_head']}**")
+        for para in CXT.SOULMATE[vkey][lang]:
+            st.markdown(para)
 
-        # ---- 🇹🇭 การ์ดไทย ----
-        st.markdown(f"### {C['thai'][lang]['head']}")
-        st.caption(C["thai"][lang]["sub"])
-        td = res["thai"].detail
-        if td["relation"]:
-            st.markdown(f"**{CXT.TH_REL[td['relation']][lang]}**")
-            st.caption(CXT.TH_CATEGORY_NOTE[lang])
-        for pkey, pdata, ptag in (("a", td["a"], CXT.PERSON[lang]["a"]), ("b", td["b"], CXT.PERSON[lang]["b"])):
-            if pdata["thaksa"]:
-                pairs = " · ".join(
-                    f"{CXT.THAKSA_REGION[lang][_THAKSA_ORDER.index(r)]}:{star_name(str(s), lang)}"
-                    for r, s in pdata["thaksa"].items())
-                st.markdown(f"**{ptag}**: {pairs}")
-            else:
-                st.caption(f"**{ptag}**: {CXT.MM_FIELDS[lang]['wed_unknown']}")
-        _src(res["thai"])
+        # ---- สรุปจากแต่ละศาสตร์ ----
+        st.markdown(f"**{CXT.SUMMARY_UI[lang]['factors_head']}**")
+        for trad, rid, d in sc["factors"]:
+            lbl = CXT.FACTOR_LABEL.get(rid, rid)[lang]
+            st.write(f"{'🟢' if d > 0 else '🟠'} {lbl} ({'+' if d > 0 else ''}{d})")
+        if not sc["factors"]:
+            st.write({"th": "ไม่มีสัญญาณเด่นชัดจากศาสตร์ใด — เป็นคู่กลาง ๆ ปรับจังหวะกันได้",
+                      "en": "No strong signal from any tradition — a neutral pair that can adjust.",
+                      "mm": "မည်သည့်ပညာရပ်မှ ထင်ရှားသော အချက်မရှိ — ကြားနေစုံတွဲဖြစ်၍ ညှိယူနိုင်သည်။"}[lang])
 
-        # ---- 🌍 การ์ดตะวันตก ----
-        st.markdown(f"### {C['western'][lang]['head']}")
-        st.caption(C["western"][lang]["sub"])
-        wd = res["western"].detail
-        for pkey, pdata, ptag in (("a", wd["a"], CXT.PERSON[lang]["a"]), ("b", wd["b"], CXT.PERSON[lang]["b"])):
-            si = pdata["sign_index"]
-            st.markdown(f"**{ptag}**: {CXT.W_SIGN[lang][si]} ({CXT.W_ELEMENT[pdata['element']][lang]} · "
-                        f"{CXT.W_MODALITY[pdata['modality']][lang]})")
-        st.markdown(f"**{CXT.W_ELEM_REL[wd['element_relation']][lang]}**")
-        st.caption(CXT.W_MOD_REL[wd["modality_relation"]][lang])
-        st.caption(CXT.W_ONLY_WARN[lang])
-        if "sign_ingress_ambiguous" in res["western"].limitations:
-            st.warning(CXT.W_INGRESS_WARN[lang])
-        _src(res["western"])
+        # ---- ทางแก้ไขดวง ----
+        with st.expander(CXT.SUMMARY_UI[lang]['remedy_head'], expanded=True):
+            for line in CXT.REMEDY[vkey][lang]:
+                st.write("• " + line)
 
-        # ---- 🧭 ภาพรวมข้ามศาสตร์ ----
-        st.markdown(f"### {CXT.CONV[lang]['head']}")
-        if syn["supportive"]:
-            st.markdown(f"**🟢 {CXT.CONV[lang]['supportive']}**")
-            for t in sorted({e["tradition"] for e in syn["supportive"]}):
-                st.write(f"• {C[t][lang]['head']}")
-        if syn["challenging"]:
-            st.markdown(f"**🟠 {CXT.CONV[lang]['challenging']}**")
-            for t in sorted({e["tradition"] for e in syn["challenging"]}):
-                st.write(f"• {C[t][lang]['head']}")
-        if syn["mixed"]:
-            st.markdown(f"**🔵 {CXT.CONV[lang]['mixed']}**")
-            for t in sorted({e["tradition"] for e in syn["mixed"]}):
-                st.write(f"• {C[t][lang]['head']}")
-        if syn["profile_only"]:
-            st.caption("• " + CXT.CONV[lang]["profile_only"] + ": "
-                       + " · ".join(C[t][lang]["head"] for t in syn["profile_only"]))
-        if syn["missing_data"]:
-            _miss = []
-            for m in syn["missing_data"]:
-                note = {"near_year_boundary": CXT.CN_BOUNDARY_WARN,
-                        "sign_ingress_ambiguous": CXT.W_INGRESS_WARN,
-                        "wednesday_sector_unknown": CXT.MM_FIELDS}.get(m["limitation"])
-                if note:
-                    txt = note[lang] if isinstance(note, dict) and lang in note else note[lang]["wed_unknown"]
-                    _miss.append(txt)
-            if _miss:
-                st.info("**" + CXT.CONV[lang]["missing"] + "**\n\n" + "\n\n".join(sorted(set(_miss))))
-        st.markdown(f"**{CXT.CONV[lang]['prompts_head']}**")
-        for p in CXT.CONV_PROMPTS[lang]:
-            st.write(f"• {p}")
-
-        # ---- 📱 เบอร์คู่ (ข้อมูลเสริม แยกจากศาสตร์วันเกิด) ----
+        # ---- เบอร์คู่ (ข้อมูลเสริม) ----
         c1_, c2_ = extract_core(cn1), extract_core(cn2)
         if all(c.isdigit() and 7 <= len(c) <= 9 for c in (c1_, c2_)):
             st.markdown(f"### {CXT.NUM_SUPP[lang]['head']}")
@@ -508,6 +470,8 @@ if page == "couple":
             if np_["nines"]["a"] >= 1 and np_["nines"]["b"] >= 1:
                 st.write("• ⭐ " + NUMPAIR_UI[lang]["nawin_line"])
 
+        # ---- ความหมายสี + disclaimer ----
+        st.caption(" · ".join(f"{e} {l}" for e, l in CXT.COLOR_LEGEND[lang]))
         st.caption(CXT.DISCLAIMER[lang])
     st.stop()
 
@@ -537,47 +501,6 @@ with st.expander(T["couple_expander"]):
 go = st.button(T["analyze"], type="primary", use_container_width=True)
 
 # ---------- หน้ารอผล: กงล้อราศีพม่าหมุน ----------
-import base64 as _b64
-import time as _time
-
-_LOADING_TXT = {
-    "th": ("คำทำนายกำลังจะมา...", "กงล้อราศีพม่ากำลังคำนวณดวงเบอร์ของคุณ"),
-    "en": ("Your prophecy is coming...", "The Burmese zodiac wheel is reading your number"),
-    "mm": ("ဗေဒင်ဟောစာ လာနေပါပြီ...", "မြန်မာ့ရာသီစက်ဝန်းက သင့်နံပါတ်ကို တွက်ချက်နေသည်"),
-}
-
-
-def _show_loading(placeholder, lang):
-    wheel = _asset("loading_wheel.webp")
-    if not wheel:
-        return
-    b64 = _b64.b64encode(open(wheel, "rb").read()).decode()
-    head, sub = _LOADING_TXT[lang]
-    placeholder.markdown(f"""
-<style>
-@keyframes nl-spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-@keyframes nl-pulse {{ 0%,100% {{ opacity: .55; }} 50% {{ opacity: 1; }} }}
-@keyframes nl-glow {{ 0%,100% {{ filter: drop-shadow(0 0 18px rgba(255,150,50,.35)); }}
-                      50% {{ filter: drop-shadow(0 0 42px rgba(255,170,60,.75)); }} }}
-.nl-loadwrap {{ position: fixed; inset: 0; z-index: 999999;
-  background: radial-gradient(ellipse at center, #101b30 0%, #0a1220 65%, #060b16 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }}
-.nl-wheel {{ width: min(58vw, 340px); height: auto; border-radius: 50%;
-  animation: nl-spin 7s linear infinite, nl-glow 2.6s ease-in-out infinite; }}
-.nl-loadhead {{ font-size: 1.35rem; font-weight: 700; color: #ffb45e; letter-spacing: .04em;
-  animation: nl-pulse 1.8s ease-in-out infinite; text-align: center; padding: 0 18px; }}
-.nl-loadsub {{ font-size: .9rem; color: #8fa3c4; text-align: center; padding: 0 24px;
-  animation: nl-pulse 2.4s ease-in-out infinite; }}
-.nl-stars {{ color: #ffcf87; letter-spacing: 14px; animation: nl-pulse 2s ease-in-out infinite; }}
-</style>
-<div class="nl-loadwrap">
-  <img class="nl-wheel" src="data:image/webp;base64,{b64}" alt="">
-  <div class="nl-loadhead">🔮 {head}</div>
-  <div class="nl-loadsub">{sub}</div>
-  <div class="nl-stars">✦ ✦ ✦</div>
-</div>
-""", unsafe_allow_html=True)
-
 if go and number:
     core = extract_core(number)
     if not core.isdigit() or not (7 <= len(core) <= 9):

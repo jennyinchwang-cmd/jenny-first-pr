@@ -12,6 +12,8 @@ from thai_couple import thaksa_profile, planet_relation, analyze_thai
 from western_couple import sun_sign, analyze_western, element_relation, modality_relation
 from burmese_couple import analyze_burmese, mahabote_class, nakhat_class, WED_UNKNOWN
 from convergence import synthesize
+from couple_score import score_couple
+from couple_rules import RuleHit, TraditionResult
 
 
 def test_chinese_rules():
@@ -82,9 +84,37 @@ def test_synthesis_no_blend():
     assert "score" not in syn                      # ห้ามมีคะแนนรวม
 
 
+def test_score_couple():
+    # deterministic: 六合 + friend + element supportive + same modality = 91 (green/excellent)
+    ch = TraditionResult("chinese", [RuleHit("liuhe", "chinese", "supportive", "HIGH", "exact", "x")],
+                         [], [], 2, {})
+    th = TraditionResult("thai", [], [], [], 1, {"relation": "friend"})
+    w = TraditionResult("western", [], [], [], 2,
+                        {"element_relation": "supportive", "modality_relation": "same_modality"})
+    sc = score_couple({"chinese": ch, "thai": th, "western": w})
+    assert sc["score"] == 50 + 18 + 12 + 8 + 3
+    assert sc["band"] == "green" and sc["verdict_key"] == "excellent"
+
+    # 六冲 + enemy + element adjust = 50-14-12-3 = 21 (red/difficult)
+    ch2 = TraditionResult("chinese", [RuleHit("liuchong", "chinese", "challenging", "HIGH", "exact", "x")],
+                          [], [], 2, {})
+    th2 = TraditionResult("thai", [], [], [], 1, {"relation": "enemy"})
+    w2 = TraditionResult("western", [], [], [], 2,
+                         {"element_relation": "adjust", "modality_relation": "different_modality"})
+    sc2 = score_couple({"chinese": ch2, "thai": th2, "western": w2})
+    assert sc2["score"] == 50 - 14 - 12 - 3
+    assert sc2["band"] == "red" and sc2["verdict_key"] == "difficult"
+
+    # ปัจจัยทุกตัวต้องมี label ใน FACTOR_LABEL
+    import couple_texts as CXT
+    for _, rid, _ in sc["factors"] + sc2["factors"]:
+        assert rid in CXT.FACTOR_LABEL, rid
+
+
 if __name__ == "__main__":
     for fn in [test_chinese_rules, test_thai_thaksa, test_western_signs,
-               test_burmese_range, test_wed_unknown, test_synthesis_no_blend]:
+               test_burmese_range, test_wed_unknown, test_synthesis_no_blend,
+               test_score_couple]:
         fn()
         print("OK", fn.__name__)
     print("ALL_TESTS_PASSED")
