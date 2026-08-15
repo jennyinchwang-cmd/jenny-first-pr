@@ -28,6 +28,13 @@ from i18n import (UI, LANGS, star_name, pair_title_i18n, pair_desc_i18n, pair_pa
 from horoscope import weekly_fortune, monthly_fortune
 from meanings import DIGIT_LONG
 from cheiro import CHEIRO_UI, cheiro_compound, mulank_compat
+import couple_texts as CXT
+from couple_rules import source_url
+from burmese_couple import analyze_burmese, WED_UNKNOWN
+from chinese_couple import analyze_chinese
+from thai_couple import analyze_thai, THAKSA_REGIONS as _THAKSA_ORDER
+from western_couple import analyze_western
+from convergence import synthesize
 
 st.set_page_config(page_title="Number Luck", page_icon="🔮", layout="centered")
 
@@ -299,93 +306,197 @@ if page == "today":
             st.write(desc)
     st.stop()
 
-# ============ หน้าดวงคู่ ============
+# ============ หน้าดวงคู่ (4 ศาสตร์) ============
 if page == "couple":
-    CU2 = FT.COUPLE_UI[lang]
-    st.subheader({"th": "💞 ดวงคู่ (ตำราพม่า: วันเกิดเป็นหลัก เบอร์เป็นเสริม)",
-                  "en": "💞 Couple Compatibility (Burmese: birthdays first)",
-                  "mm": "💞 စုံတွဲ လိုက်ဖက်မှု (မွေးနေ့ အဓိက)"}[lang])
+    C = CXT.CARDS
+    st.subheader({"th": "💞 ดวงคู่ 4 ศาสตร์ (วันเกิดเป็นหลัก)",
+                  "en": "💞 Couple Reading — 4 traditions (birthdays first)",
+                  "mm": "💞 စုံတွဲ လိုက်ဖက်မှု — ပညာရပ် ၄ မျိုး (မွေးနေ့ အဓိက)"}[lang])
+    st.caption({"th": "แสดงผลแยกตามศาสตร์ (พม่า / จีน / ไทย / ตะวันตก) ไม่รวมเป็นคะแนนเดียว",
+                "en": "Each tradition shown separately (Burmese / Chinese / Thai / Western) — never one blended score.",
+                "mm": "ပညာရပ်အလိုက် သီးခြားပြသည် (မြန်မာ / တရုတ် / ထိုင်း / အနောက်တိုင်း) — အမှတ်တစ်ခုတည်း ပေါင်းမပြပါ။"}[lang])
 
     # ---- ① วันเกิด (หลัก) ----
-    st.markdown("**" + CU2["step1"] + "**")
     cc1, cc2 = st.columns(2)
     with cc1:
         cbd1 = st.date_input(T["bd_label"] + " ①", value=dt.date(1995, 1, 1),
                              min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="cp_b1")
-        wp1 = st.checkbox(T["wed_pm"] + " ①", value=False, key="cp_w1") if cbd1.weekday() == 2 else False
+        wc1 = None
+        if cbd1.weekday() == 2:
+            wc1 = st.selectbox(CXT.WED_SECTOR_LABEL[lang] + " ①", options=["am", "pm", "unknown"],
+                               format_func=lambda o: CXT.WED_SECTOR[lang][o], key="cp_w1")
     with cc2:
         cbd2 = st.date_input(T["bd2_label"] + " ②", value=dt.date(1996, 6, 15),
                              min_value=dt.date(1930, 1, 1), max_value=dt.date.today(), key="cp_b2")
-        wp2 = st.checkbox(T["wed_pm"] + " ②", value=False, key="cp_w2") if cbd2.weekday() == 2 else False
+        wc2 = None
+        if cbd2.weekday() == 2:
+            wc2 = st.selectbox(CXT.WED_SECTOR_LABEL[lang] + " ②", options=["am", "pm", "unknown"],
+                               format_func=lambda o: CXT.WED_SECTOR[lang][o], key="cp_w2")
 
-    # ---- ② เบอร์ (เสริม) ----
-    st.markdown("**" + CU2["step2"] + "**")
+    # ---- ② เบอร์ (เสริม — ท้ายสุด) ----
+    st.markdown("**" + CXT.NUM_SUPP[lang]["head"] + "**")
     nc1, nc2 = st.columns(2)
     cn1 = nc1.text_input(T["phone_label"] + " ①", placeholder="09XXXXXXXXX", key="cp_n1")
     cn2 = nc2.text_input(NUMPAIR_UI[lang]["num2_label"] + " ②", placeholder="09XXXXXXXXX", key="cp_n2")
 
     if st.button(T["analyze"], type="primary", use_container_width=True, key="cp_go"):
-        k1 = day_key_from_date(cbd1, wp1)
-        k2 = day_key_from_date(cbd2, wp2)
-        n1, n2 = DAYS[k1]["num"], DAYS[k2]["num"]
-        p1_lbl, p2_lbl = star_name(str(n1), lang), star_name(str(n2), lang)
+        def _sector(bd, wc):
+            if wc is None:
+                return day_key_from_date(bd)
+            if wc == "unknown":
+                return WED_UNKNOWN
+            return day_key_from_date(bd, (wc == "pm"))
 
-        # การ์ดสองคน: รูปสัตว์ + ดาว + นิสัย
+        s1, s2 = _sector(cbd1, wc1), _sector(cbd2, wc2)
+        res = {
+            "burmese": analyze_burmese(cbd1, cbd2, s1, s2),
+            "chinese": analyze_chinese(cbd1, cbd2),
+            "thai": analyze_thai(s1, s2),
+            "western": analyze_western(cbd1, cbd2),
+        }
+        syn = synthesize(res)
+
+        def _src(res_):
+            with st.expander(CXT.SOURCE_HEAD[lang]):
+                seen = {}
+                for h in res_.production_hits():
+                    seen[h.source_id] = h.evidence_confidence
+                for sid, conf in seen.items():
+                    lbl = CXT.SOURCE_LABEL.get(sid, sid)[lang]
+                    st.write(f"• **{lbl}** — {CXT.CONF[conf][lang]}")
+                    u = source_url(sid)
+                    if u:
+                        st.caption(u)
+                shown = set()
+                for h in res_.production_hits():
+                    if h.note_key and h.note_key not in shown:
+                        st.caption(CXT.NOTES[h.note_key][lang])
+                        shown.add(h.note_key)
+
+        # ---- การ์ดโปรไฟล์สองคน (พื้นฐานพม่า: รูปสัตว์ + ดาว + นิสัย) ----
         pc1, pc2 = st.columns(2)
-        for col, k, tag in ((pc1, k1, T["person1"]), (pc2, k2, T["person2"])):
+        for col, k, tag in ((pc1, s1, T["person1"]), (pc2, s2, T["person2"])):
             with col:
-                img = _asset(_DAY_IMG.get(k, ""))
-                if img:
-                    st.image(img, use_container_width=True)
-                st.markdown(f"**{tag}: {day_name(k)}** — {star_name(str(DAYS[k]['num']), lang)} · {day_animal(k)}")
-                st.caption(f"{CU2['his']}: {day_trait(k)}")
+                if k == WED_UNKNOWN:
+                    st.markdown(f"**{tag}**")
+                    st.caption(CXT.MM_FIELDS[lang]["wed_unknown"])
+                else:
+                    img = _asset(_DAY_IMG.get(k, ""))
+                    if img:
+                        st.image(img, use_container_width=True)
+                    st.markdown(f"**{tag}: {day_name(k)}** — {star_name(str(DAYS[k]['num']), lang)} · {day_animal(k)}")
+                    st.caption(f"{CXT.MM_FIELDS[lang]['trait']}: {day_trait(k)}")
 
-        # ความสัมพันธ์หลัก + คะแนน
-        cc = couple_compatibility(k1, k2)
-        is_clash = frozenset((k1, k2)) in COUPLE_CLASH
-        rel_bd = relation(n1, n2)
-        if is_clash:
-            read_key, bd_score = "clash", 35
-        elif k1 == k2:
-            read_key, bd_score = "same", 72
-        elif rel_bd == "มิตร":
-            read_key, bd_score = "มิตร", 88
-        elif rel_bd == "เสริม":
-            read_key, bd_score = "เสริม", 80
-        elif rel_bd == "ศัตรู":
-            read_key, bd_score = "ศัตรู", 45
+        # ---- 🇲🇲 การ์ดพม่า ----
+        st.markdown(f"### {C['burmese'][lang]['head']}")
+        st.caption(C["burmese"][lang]["sub"])
+        mb = res["burmese"].detail
+        for pkey, pdata, ptag in (("a", mb["a"], CXT.PERSON[lang]["a"]), ("b", mb["b"], CXT.PERSON[lang]["b"])):
+            pr = pdata["profile"]
+            if pr.get("unknown"):
+                st.markdown(f"**{ptag}**: {CXT.MM_FIELDS[lang]['wed_unknown']}")
+            else:
+                st.markdown(f"**{ptag}**: {CXT.MM_FIELDS[lang]['planet']} {pr['planet']} · "
+                            f"{CXT.MM_FIELDS[lang]['animal']} {pr['animal']} · {CXT.MM_FIELDS[lang]['dir']} {pr['dir']}")
+            st.caption(f"{CXT.MM_FIELDS[lang]['mahabote']}: {CXT.MAHABOTE_LABELS[lang][pdata['mahabote_idx']]} · "
+                       f"{CXT.MM_FIELDS[lang]['nakhat']}: {CXT.NAKHAT_LABELS[lang][pdata['nakhat_idx']]}")
+        st.caption(CXT.MM_PROFILE_ONLY[lang])
+        _src(res["burmese"])
+
+        # ---- 🇨🇳 การ์ดจีน ----
+        st.markdown(f"### {C['chinese'][lang]['head']}")
+        st.caption(C["chinese"][lang]["sub"])
+        cd = res["chinese"].detail
+        for pkey, pdata, ptag in (("a", cd["a"], CXT.PERSON[lang]["a"]), ("b", cd["b"], CXT.PERSON[lang]["b"])):
+            br = pdata["branch"]; animal, elem, pol = pdata["info"]
+            st.markdown(f"**{ptag}**: {br} · {CXT.CN_ANIMAL[animal][lang]} · "
+                        f"{CXT.CN_ELEMENT[elem][lang]} · {CXT.CN_POLARITY[pol][lang]}")
+        rel_hits = [h for h in res["chinese"].production_hits() if h.scope == "relationship"]
+        if rel_hits:
+            _ICON = {"supportive": "🟢", "challenging": "🟠", "mixed": "🔵", "neutral": "⚪"}
+            for h in rel_hits:
+                st.markdown(f"{_ICON[h.polarity]} **{CXT.RULE_LABEL[h.rule_id][lang]}**")
+                if h.note_key:
+                    st.caption(CXT.NOTES[h.note_key][lang])
         else:
-            read_key, bd_score = "กลาง", 62
+            st.write({"th": "ไม่พบกฎความสัมพันธ์กิ่งปี (อยู่ในกลุ่มกลาง)",
+                      "en": "No year-branch relationship rule matched (neutral).",
+                      "mm": "မွေးနှစ်ခန်း ဆက်စပ်မှုစည်းမျဉ်း မတွေ့ပါ (ကြားနေ)။"}[lang])
+        st.caption(CXT.CN_ONLY_WARN[lang])
+        if "near_year_boundary" in res["chinese"].limitations:
+            st.warning(CXT.CN_BOUNDARY_WARN[lang])
+        _src(res["chinese"])
 
-        # เบอร์คู่ (ถ้ากรอก)
+        # ---- 🇹🇭 การ์ดไทย ----
+        st.markdown(f"### {C['thai'][lang]['head']}")
+        st.caption(C["thai"][lang]["sub"])
+        td = res["thai"].detail
+        if td["relation"]:
+            st.markdown(f"**{CXT.TH_REL[td['relation']][lang]}**")
+            st.caption(CXT.TH_CATEGORY_NOTE[lang])
+        for pkey, pdata, ptag in (("a", td["a"], CXT.PERSON[lang]["a"]), ("b", td["b"], CXT.PERSON[lang]["b"])):
+            if pdata["thaksa"]:
+                pairs = " · ".join(
+                    f"{CXT.THAKSA_REGION[lang][_THAKSA_ORDER.index(r)]}:{star_name(str(s), lang)}"
+                    for r, s in pdata["thaksa"].items())
+                st.markdown(f"**{ptag}**: {pairs}")
+            else:
+                st.caption(f"**{ptag}**: {CXT.MM_FIELDS[lang]['wed_unknown']}")
+        _src(res["thai"])
+
+        # ---- 🌍 การ์ดตะวันตก ----
+        st.markdown(f"### {C['western'][lang]['head']}")
+        st.caption(C["western"][lang]["sub"])
+        wd = res["western"].detail
+        for pkey, pdata, ptag in (("a", wd["a"], CXT.PERSON[lang]["a"]), ("b", wd["b"], CXT.PERSON[lang]["b"])):
+            si = pdata["sign_index"]
+            st.markdown(f"**{ptag}**: {CXT.W_SIGN[lang][si]} ({CXT.W_ELEMENT[pdata['element']][lang]} · "
+                        f"{CXT.W_MODALITY[pdata['modality']][lang]})")
+        st.markdown(f"**{CXT.W_ELEM_REL[wd['element_relation']][lang]}**")
+        st.caption(CXT.W_MOD_REL[wd["modality_relation"]][lang])
+        st.caption(CXT.W_ONLY_WARN[lang])
+        if "sign_ingress_ambiguous" in res["western"].limitations:
+            st.warning(CXT.W_INGRESS_WARN[lang])
+        _src(res["western"])
+
+        # ---- 🧭 ภาพรวมข้ามศาสตร์ ----
+        st.markdown(f"### {CXT.CONV[lang]['head']}")
+        if syn["supportive"]:
+            st.markdown(f"**🟢 {CXT.CONV[lang]['supportive']}**")
+            for t in sorted({e["tradition"] for e in syn["supportive"]}):
+                st.write(f"• {C[t][lang]['head']}")
+        if syn["challenging"]:
+            st.markdown(f"**🟠 {CXT.CONV[lang]['challenging']}**")
+            for t in sorted({e["tradition"] for e in syn["challenging"]}):
+                st.write(f"• {C[t][lang]['head']}")
+        if syn["mixed"]:
+            st.markdown(f"**🔵 {CXT.CONV[lang]['mixed']}**")
+            for t in sorted({e["tradition"] for e in syn["mixed"]}):
+                st.write(f"• {C[t][lang]['head']}")
+        if syn["profile_only"]:
+            st.caption("• " + CXT.CONV[lang]["profile_only"] + ": "
+                       + " · ".join(C[t][lang]["head"] for t in syn["profile_only"]))
+        if syn["missing_data"]:
+            _miss = []
+            for m in syn["missing_data"]:
+                note = {"near_year_boundary": CXT.CN_BOUNDARY_WARN,
+                        "sign_ingress_ambiguous": CXT.W_INGRESS_WARN,
+                        "wednesday_sector_unknown": CXT.MM_FIELDS}.get(m["limitation"])
+                if note:
+                    txt = note[lang] if isinstance(note, dict) and lang in note else note[lang]["wed_unknown"]
+                    _miss.append(txt)
+            if _miss:
+                st.info("**" + CXT.CONV[lang]["missing"] + "**\n\n" + "\n\n".join(sorted(set(_miss))))
+        st.markdown(f"**{CXT.CONV[lang]['prompts_head']}**")
+        for p in CXT.CONV_PROMPTS[lang]:
+            st.write(f"• {p}")
+
+        # ---- 📱 เบอร์คู่ (ข้อมูลเสริม แยกจากศาสตร์วันเกิด) ----
         c1_, c2_ = extract_core(cn1), extract_core(cn2)
-        has_nums = all(c.isdigit() and 7 <= len(c) <= 9 for c in (c1_, c2_))
-        if has_nums:
+        if all(c.isdigit() and 7 <= len(c) <= 9 for c in (c1_, c2_)):
+            st.markdown(f"### {CXT.NUM_SUPP[lang]['head']}")
+            st.caption(CXT.NUM_SUPP[lang]["note"])
             np_ = couple_numbers(c1_, c2_)
-            overall = round(bd_score * 0.7 + np_["score"] * 0.3)
-        else:
-            overall = bd_score
-
-        st.metric(CU2["overall"], f"{overall}%",
-                  delta=(f"{CU2['bd_part']} 70% + {CU2['num_part']} 30%" if has_nums else CU2["bd_part"]))
-        tone_txt = cc["tone"] if lang == "th" else COUPLE_TONE[lang][cc["tone"]]
-        if overall >= 70:
-            st.success(tone_txt)
-        elif overall >= 50:
-            st.info(tone_txt)
-        else:
-            st.warning(tone_txt)
-
-        # ---- คำทำนายยาว 3 ย่อหน้า ----
-        for para in FT.COUPLE_READING[read_key][lang]:
-            st.markdown(para.format(p1=p1_lbl, p2=p2_lbl, d1=day_name(k1), d2=day_name(k2),
-                                    a1=day_animal(k1), a2=day_animal(k2)))
-        if is_clash and lang == "th":
-            st.caption("ตำราระบุคู่นี้: " + cc["text"])
-
-        # ---- เบอร์คู่ (เสริม) ----
-        if has_nums:
-            st.markdown("**" + CU2["num_head"] + "**")
             v = numpair_verdict(np_["score"], lang)
             st.write(f"• {NUMPAIR_UI[lang]['score']}: **{np_['score']}/100** — {v}")
             st.write("• " + NUMPAIR_UI[lang]["tail_line"].format(a=np_["tail"]["a"], b=np_["tail"]["b"])
@@ -397,13 +508,7 @@ if page == "couple":
             if np_["nines"]["a"] >= 1 and np_["nines"]["b"] >= 1:
                 st.write("• ⭐ " + NUMPAIR_UI[lang]["nawin_line"])
 
-        # ---- ทางเสริมดวงคู่ (ยะดะยา) ----
-        with st.expander(CU2["remedy_head"], expanded=(overall < 60)):
-            for line in FT.COUPLE_REMEDY[lang]:
-                st.write("• " + line.format(d1=day_name(k1), d2=day_name(k2),
-                                            k1=GROH_THAK[k1], k2=GROH_THAK[k2],
-                                            dir1=day_dir(k1), dir2=day_dir(k2)))
-        st.caption(CU2["note"])
+        st.caption(CXT.DISCLAIMER[lang])
     st.stop()
 
 # ============ หน้าดูดวงเบอร์ (โค้ดเดิมด้านล่าง) ============
